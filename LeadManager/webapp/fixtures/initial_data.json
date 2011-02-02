@@ -112,6 +112,34 @@
     }
   },
   {
+    "model": "webapp.LeadField",
+    "pk": 17,
+    "fields": {
+      "name": "PersonalInfo.GoodStudentDiscount"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 18,
+    "fields": {
+      "name": "PersonalInfo.Gender"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 19,
+    "fields": {
+      "name": "PersonalInfo.MaritalStatus"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 20,
+    "fields": {
+      "name": "Driver.SR22"
+    }
+  },
+  {
     "model": "webapp.LeadFieldValue",
     "pk": 1,
     "fields": {
@@ -284,11 +312,51 @@
     }
   },
   {
+    "model": "webapp.LeadFieldValue",
+    "pk": 17,
+    "fields": {
+      "field": 17,
+      "consumer" :1,
+      "uri":"YesNo",
+      "method" : "X"
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 18,
+    "fields": {
+      "field": 18,
+      "consumer" :1,
+      "uri":"GenderType",
+      "method" : "X"
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 19,
+    "fields": {
+      "field": 19,
+      "consumer" :1,
+      "uri":"MaritalStatusType",
+      "method" : "X"
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 20,
+    "fields": {
+      "field": 20,
+      "consumer" :1,
+      "uri":"YesNo",
+      "method" : "X"
+    }
+  },  
+  {
     "model": "webapp.LeadSource",
     "pk": 1,
     "fields": {
       "name": "TJ",
-      "missing_fields": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+      "missing_fields": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
     }
   },
  {

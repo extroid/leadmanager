@@ -47,7 +47,7 @@
 {% if error %}
     <div align="center" style="background-color: #ca373b; color: white;">{{error}}</p></div>
 {% endif %}
-<div style="float: left; display: block;width: 49%">
+<div style="float: left; display: block;width: 40%">
 	<form method="post" action="/lead/moss/new">
 	 {% csrf_token %}
 	{% if lead %}
@@ -70,7 +70,7 @@
 	
 	</form>	
 </div>
-<div style="float: left; display: block; width: 49%; margin-left: 10px;">
+<div style="float: left; display: block; width: 59%; margin-left: 10px;">
 {% if lead %}
     <table> 
 	{% for entry in lead.get_moss_required_fields %}

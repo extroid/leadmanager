@@ -13,6 +13,13 @@ from models import LeadFile, LeadConsumer, LeadEntry, LeadFieldValue, LeadTransa
 from LeadManager.msa_plugin.msafactory import csvMap, validate_lead as moss_validate_lead
 from lxml.etree import XMLSyntaxError
 
+class Value:
+    def __init__ (self, key,val):
+        self.title = key
+        self.value = val
+    def __str__ (self):
+        return self.title
+
 @csrf_protect
 def index(request):
     if LeadEntry.objects.count()==0:
@@ -94,14 +101,7 @@ def new_lead(request, consumer_name):
                 lead.city = request.POST['PersonalInfo.City']
                 
                 record = ['' for x in range(0, 44)]
-                
-                class Value:
-                    def __init__ (self, key,val):
-                        self.title = key
-                        self.value = val
-                    def __str__ (self):
-                        return self.title
-                        
+
                 titles = []        
                 for attr in request.POST:
                     if attr not in csvMap: continue
@@ -157,9 +157,35 @@ def show_leadfile(request, leadfileno):
 def show_lead(request, leadno):
     try:
         lead = LeadEntry.objects.get(pk=leadno)
-        return render_to_response('lead_table.html', {'lead':lead}, context_instance=RequestContext(request))
+        data = lead.get_data_as_list()
+        MOSS = LeadConsumer.objects.get(name='MOSS')
+        titles = [x for x in csvMap.keys()]
+        titles = MOSS.get_diff(titles)
+        titles.sort()
+        values = []
+        for attr in titles:
+            values.append(Value(attr,data[csvMap[attr]]))
+        
+        return render_to_response('lead_table.html', {'lead':lead, 'values':values}, context_instance=RequestContext(request))
     except LeadFile.DoesNotExist:
         print 'LeadEntry pk=%s does not exists' % leadno
+
+def save_field_value(request):
+    if request.POST:
+        try:
+            lead_id = int(request.POST['lead_id'])
+            field_name = request.POST['name']
+            field_value = request.POST['value']
+            lead = get_object_or_404(LeadEntry, pk=lead_id)
+            data = lead.get_data_as_list()
+            data[csvMap[field_name]] = field_value
+            lead.set_data_record(data)
+            lead.save()
+            data={'code':'OK', 'field_name':field_name,'lead_id':lead.id, 'is_complete':lead.is_complete()}
+            return HttpResponse(simplejson.dumps(data),mimetype='application/json')
+        except Exception, msg:
+            data={'code':'NOK','message':msg}
+            return HttpResponse(simplejson.dumps(data),mimetype='application/json')
         
 def save_required_field_value(request,consumer_name):
     if request.POST:

@@ -20,14 +20,12 @@
                      success: function(data) {
                         $.fancybox.hideActivity();
                         if(data.code=='OK'){
-                        	$('#icon_'+arr[0]).html('<img src="/static/icons/package-install.png"/>');
+                        	$('#icon_'+arr[0]).append('<img src="/static/icons/package-install.png"/>');
                         	$('#icon_'+arr[0]).show();
                         	if (data.is_complete){
                         		   $('#status_icon_'+data.entry_id).attr('src','/static/icons/gtk-info.png');
                         		   $('#status_text_'+data.entry_id).text('Sell now');
                         		   $('#status_text_'+data.entry_id).attr('href','/post/moss/'+data.entry_id);
-                        		   
-                        		   
                         	}
                         }else{
                         	$('#icon_'+arr[0]).css('width:100px').html('<strong>data.message</strong>');
@@ -37,6 +35,37 @@
                      },
                  },'json'); 
             	 return false;
+             });
+             
+             $('.common_field').bind('change',function(){
+            	 var id = $(this).attr('id').split('_')[1];
+            	 var name = $(this).attr('name');
+            	 var value = $(this).attr('value');
+            	 
+            	 $.fancybox.showActivity();
+                 $.ajax({
+                     type    : "POST",
+                     cache   : false,
+                     data    : {'lead_id':id, 'name':name, 'value':value},
+                     url     : '/lead/ucfld',
+                     success: function(data) {
+                        $.fancybox.hideActivity();
+                        if(data.code=='OK'){
+                        	var fld_id = data.field_name.replace('.','\\.');
+                        	$('#icon_'+fld_id).html('<img src="/static/icons/package-install.png"/>');
+                            $('#icon_'+fld_id).show();
+                            if (data.is_complete){
+                                $('#status_icon_'+data.lead_id).attr('src','/static/icons/gtk-info.png');
+                                $('#status_text_'+data.lead_id).text('Sell now');
+                                $('#status_text_'+data.lead_id).attr('href','/post/moss/'+data.lead_id);
+                            }
+                        }else{
+                            alert(data.code+':'+data.message);
+                        }
+                     }   
+                 },'json');
+        
+                 return false;
              });
              /*
              $('#delete_action_form').bind('submit', function(ev){
@@ -51,6 +80,7 @@
          });
      </script>  
     <div id="tabs-container"> 
+        <h3>{{lead}}</h3>
 	    <div id="tabs" style="overflow:auto;position:relative;">
 			<ul>
 			  <li><a href="#tabs-1"><span>Data</span></a></li>
@@ -66,19 +96,17 @@
 			     <input type="submit" value="Delete lead"/>
 			    </form> 
 				<table>
-				   {% if lead.get_file.has_header %}
-				   <tr>
-				       {% for label in lead.get_file.get_header_labels %}
-				           <th title="{{label}}">{{label|truncatewords:3}}</th>
-				       {% endfor %}
-				   </tr>
-				   {% endif %}
-				   
+			       {% for value in values %}
 			       <tr>
-			       {% for cell in lead.get_data_as_list %}
-			           <td>{{cell}}</td>
+			           <td>{{value.title}}</td>
+			           <td>
+			             <div style="float: left;display: block;">
+			             <input class="common_field" id="{{value.title}}_{{lead.id}}" type="text" name="{{value.title}}" value="{{value.value}}"/>
+			             </div>
+			             <div id="icon_{{value.title}}" style="display:none; display: block; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
+			           </td>
+			       </tr>    
 			       {% endfor %}
-			       </tr>
 				</table>
 			</div>
 			

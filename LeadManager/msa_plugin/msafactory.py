@@ -229,8 +229,9 @@ def get_reqval(label, row, lead):
     
 def createPersonalInfo(row, lead):
     personID      = 1 
-    gender        = getGender(row[csvMap['PersonalInfo.Gender']]) 
-    maritalStatus = row[csvMap['PersonalInfo.MaritalStatus']]
+#    gender        = getGender(row[csvMap['PersonalInfo.Gender']]) 
+    gender        = get_reqval('PersonalInfo.Gender', row, lead)
+    maritalStatus = get_reqval('PersonalInfo.MaritalStatus', row, lead)
     firstName     = row[csvMap['PersonalInfo.FirstName']] 
     lastName      = row[csvMap['PersonalInfo.LastName']]
     birthDate     = getBirthday(row[csvMap['PersonalInfo.BirthDate']])
@@ -238,7 +239,7 @@ def createPersonalInfo(row, lead):
     education_    = get_reqval('Education', row, lead)
     militaryExperience = get_reqval('MilitaryExperience', row, lead)
     creditRaiting = msa.CreditRatingType(Bankruptcy="No", valueOf_="Excellent")
-    education     = msa.EducationType(row[csvMap['PersonalInfo.GoodStudentDiscount']], education_)
+    education     = msa.EducationType(get_reqval('PersonalInfo.GoodStudentDiscount', row, lead), education_)
     relationshipToApplicant = "Self"
     
     # socialSecurityNumber = militaryExperience = creditRating = None
@@ -260,7 +261,7 @@ def createDriver(row, lead):
     personalInfo = createPersonalInfo(row, lead)
     state = get_reqval('DriversLicense.State', row, lead) 
     driversLicense = msa.DriversLicense('No', Number=row[csvMap['Driver.LicenseNumber']] or None, LicensedAge=row[csvMap['Driver.LicenseIssuedAge']], State=state)
-    drivingRecord = msa.DrivingRecord ( SR22Required = row[csvMap['Driver.SR22']], DriverTraining="Yes" )
+    drivingRecord = msa.DrivingRecord ( SR22Required = get_reqval('Driver.SR22', row, lead), DriverTraining="Yes" )
 
     return msa.Driver(driverID, personalInfo, primaryVehicle, driversLicense, drivingRecord)
 
