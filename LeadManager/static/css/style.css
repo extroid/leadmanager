@@ -1,0 +1,18 @@
+.filename{
+	font-family: Verdata, Arial, Helvetica, sans-serif;
+	color: grey;
+}
+
+.total{
+	border-top-width: 1px;border-top-style: dashed;
+}
+
+.ui-tabs-nav, .ui-tabs-panel {
+    font-family: "Trebuchet MS", Trebuchet, Verdana, Helvetica, Arial, sans-serif;
+    font-size: 12px;
+}
+
+.field_saved{
+	padding-right: 20px;
+	background: url(/static/icons/package-install.png) no-repeat 0 0; 
+}

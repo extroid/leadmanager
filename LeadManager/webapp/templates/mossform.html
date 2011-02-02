@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block pagescripts %} 
+<script type="text/javascript">
+    $(function(){
+        $('.moss_field_value_select').bind('change', function(){
+            var val = $(this).val();
+            if (val<0){ 
+                return false;
+            }   
+            var arr = val.split('_');
+            
+            $.ajax({
+                type        : "POST",
+                cache   : false,
+                url     : '/lead/moss/ufld',
+                data    : 'field='+arr[0]+'&value='+arr[1],
+                success: function(data) {
+                   if(data.code=='OK'){
+                       $('#icon_'+arr[0]).html('<img src="/static/icons/package-install.png"/>');
+                       $('#icon_'+arr[0]).show();
+                       if (data.is_complete){
+                       }
+                   }else{
+                       $('#icon_'+arr[0]).css('width:100px').html('<strong>data.message</strong>');
+                       $('#icon_'+arr[0]).show();
+                   }
+                },
+            },'json'); 
+            return false;
+        });
+    });
+</script>  
+{% endblock %}
+
+{% block parentmenu%}<a href="/">Lead Dashboard</a>&nbsp;/&nbsp;{% endblock %}{% block menu%}{%endblock%}
+
+{% block pagetitle%}
+	{% if lead %}
+		<h1>Edit lead {{lead}}</h1>
+		{% else%}
+		<h1>New lead</h1>
+	{% endif %}
+{% endblock %}
+
+{% block content %}
+
+{% if error %}
+    <div align="center" style="background-color: #ca373b; color: white;">{{error}}</p></div>
+{% endif %}
+<div style="float: left; display: block;width: 49%">
+	<form method="post" action="/lead/moss/new">
+	 {% csrf_token %}
+	{% if lead %}
+	<input type="hidden" name="lead_id" value="{{lead.id}}"/>
+	{% endif %}
+	<table>
+	    {{form}} 
+		{% for title in titles %}
+		    <tr>
+			    <td width="20%">{{title}}</td>
+			    <td width="80%"><input name="{{title}}" type="text" size="10" value="{% if title.value %}{{title.value}}{% endif %}"/></td>
+		    </tr>
+		{% endfor %}
+	</table>
+	{% if lead %}
+	    <input type="submit" value="Validate and create new"/>
+	{% else %}
+	    <input type="submit" value="Submit"/>
+	{% endif %}
+	
+	</form>	
+</div>
+<div style="float: left; display: block; width: 49%; margin-left: 10px;">
+{% if lead %}
+    <table> 
+	{% for entry in lead.get_moss_required_fields %}
+	   <tr>
+		 <td width="20%">{{entry.value.field.name}}</td>
+		 <td width="80%">
+			 <div>
+			 <select name="{{entry.field.id}}" class="moss_field_value_select" style="display:block; float:left;">
+			 <option value="-1">Please select...</option>    
+			 {% for optval in entry.options %}
+			     
+			     <option 
+			         {% if optval == entry.value.value %}selected="selected"{% endif %}  
+			         value="{{entry.value.id}}_{{optval}}">{{optval}}
+			     </option>
+			 {% endfor %}
+			 </select>
+			 <div id="icon_{{entry.value.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
+			 </div>
+		 </td>
+		 
+	   </tr>
+	{% endfor %}
+</table>	
+{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,114 @@
+<div id="parent" style="width:812px;">
+    <h3 style="margin-bottom: 0;">Leads submitted on {{date}}</h3> 
+    
+     <script language="javascript">
+     function hide_panel(){
+         $("#detail").hide();
+         $.fancybox.resize();
+         return false;
+     }
+     
+     $(function(){
+	     $(".post_moss").bind("click", function() {
+	    	 $("#detail").hide();
+	         $.fancybox.showActivity();
+	         var link = $(this);
+	         $.ajax({
+	             type        : "POST",
+	             cache   : false,
+	             url     : $(this).attr('href'),
+	             success: function(data) {
+	             	$.fancybox.hideActivity();
+	             	if(data.code=='OK'){
+	             		link.parent().text(data.price);
+	             	}else{
+	             		alert(data.code+':'+data.message);
+	             	}
+	             	return false;
+	             },
+	         },'json');
+	
+	         return false;
+	     });
+	     
+	     $("#detail_table_close").bind ( "click", hide_panel );
+	     
+	     $(".show_detail").bind("click", function() {
+	    	 $.fancybox.showActivity();
+	    	 $.ajax({
+	    		 type        : "GET",
+	             cache   : false,
+	             url     : $(this).attr('href'),
+	             success: function(data) {
+	            	    $('#detail_content').html(data);
+	            	    $.fancybox.hideActivity();
+	                    $('#detail').show();
+	                    $.fancybox.resize();
+	                    return false;
+	             }	    
+	    	 });
+	    	 
+	    	 return false;
+	     });
+     });
+    </script>
+    <div id="detail" style="display:none">
+    <div style="float: right;"><a id="detail_table_close" href="#">Hide</a></div>
+    <br/>
+    <div id="detail_content"></div>
+    </div>
+    <div align="center">    
+	<table>
+	   <tr>
+	       <th>Show</th>
+	       <th>Full Name</th>
+	       <th>City</th>
+	       <th>State</th>
+	       <th>MOSS</th>
+	       {% comment %} <th>IA</th>{% endcomment %}
+	   </tr>
+	   {% for entry in leads.all %}
+	       <tr>
+	           <td align="center">
+	           {% if entry.get_moss_price == 0 and entry.transactions.count > 0 %}
+	               <span id="status_transact_{{entry.id}}" style="color: red;font-weight: bold;">!</span>
+	           {% else %}
+                   <span id="status_transact_{{entry.id}}">&nbsp;</span>
+               {% endif %}
+	           <a class="show_detail" href="/lead/{{entry.id}}">
+		           {% if entry.is_complete %}
+		               <img id="status_icon_{{entry.id}}" style="border:0" src="/static/icons/gtk-info.png"/>
+		           {% else %}
+	                   <img id="status_icon_{{entry.id}}" style="border:0" src="/static/icons/package-new.png"/>
+	               {% endif %}     
+	           </a></td>
+	           <td>{{entry.first_name}}&nbsp;{{entry.last_name}}</td>
+	           <td>{{entry.city}}</td>
+	           <td>{{entry.state}}</td>
+	           {% if entry.get_moss_price > 0 %}
+	               <td>{{entry.get_moss_price}}</td>
+	           {% else %}
+	               {% if entry.is_moss_complete %}
+	                   <td><a id="status_text_{{entry.id}}" class="post_moss" href="/post/moss/{{entry.id}}">Sell now</a></td>
+	               {% else %}    
+	                   <td><a id="status_text_{{entry.id}}" class="show_detail" href="/lead/{{entry.id}}">Edit</a></td>
+	               {% endif %}    
+	           {% endif %}
+	           
+	           {% comment %}     
+	           {% if entry.get_ia_price > 0 %}
+                   <td>{{entry.get_ia_price}}</td>
+               {% else %}
+                   {% if entry.get_ia_latest_price > 0 %} 
+                    <td><a href="/post/ia/{{entry.id}}">Sell for {{entry.get_ia_latest_price}}</a></td>
+                   {% else %}
+                    <td><a href="/post/ia/{{entry.id}}">Get price</a></td>
+                   {% endif %}
+               {% endif %}
+               {% endcomment %}
+	       </tr>
+	   {% endfor %}
+	   <tr><td class="total">&nbsp;</td><td class="total">Total</td><td class="total">&nbsp;</td><td class="total">&nbsp;</td><td class="total">{{day_total}}</td></tr>
+	</table>
+	</div>
+</div>

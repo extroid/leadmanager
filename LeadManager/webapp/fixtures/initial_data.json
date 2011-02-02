@@ -1,0 +1,357 @@
+[
+   {
+    "model": "webapp.LeadField",
+    "pk": 1,
+    "fields": {
+      "name": "sub-model"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 2,
+    "fields": {
+      "name": "ResidenceStatus"
+    }
+  },
+   {
+    "model": "webapp.LeadField",
+    "pk": 3,
+    "fields": {
+      "name": "ResidenceStatus.YearsAt"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 4,
+    "fields": {
+      "name": "ResidenceStatus.MonthsAt"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 5,
+    "fields": {
+      "name": "RequestedCoverage"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 6,
+    "fields": {
+      "name": "MilitaryExperience"
+    }
+  },
+    {
+    "model": "webapp.LeadField",
+    "pk": 7,
+    "fields": {
+      "name": "Education"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 8,
+    "fields": {
+      "name": "DriversLicense.State"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 9,
+    "fields": {
+      "name": "RequestCoverage"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 10,
+    "fields": {
+      "name": "Occupation"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 11,
+    "fields": {
+      "name": "GarageType"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 12,
+    "fields": {
+      "name": "ComphrensiveDeductible"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 13,
+    "fields": {
+      "name": "CollisionDeductible"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 14,
+    "fields": {
+      "name": "VehUse.AnnualMiles"
+    }
+  },
+   {
+    "model": "webapp.LeadField",
+    "pk": 15,
+    "fields": {
+      "name": "VehUse"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 16,
+    "fields": {
+      "name": "PersonalInfo.State"
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 1,
+    "fields": {
+      "field": 1,
+      "consumer" :1,
+      "uri": "http://msadev1.msaff.com/xml-post/get_vehicle_info.php",
+      "method" : "H"
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 2,
+    "fields": {
+      "field": 2,
+      "consumer" :1,
+      "uri":"ResidenceStatusValues",
+      "method" : "X",
+      "index": 37
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 3,
+    "fields": {
+      "field": 3,
+      "consumer" :1,
+      "uri":"YearsAtType",
+      "method" : "X",
+      "index": 14
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 4,
+    "fields": {
+      "field": 4,
+      "consumer" :1,
+      "uri":"MonthsAtType",
+      "method" : "X",
+      "index": 14
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 5,
+    "fields": {
+      "field": 5,
+      "consumer" :1,
+      "uri":"CoverageType",
+      "method" : "X",
+      "index": 29
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 6,
+    "fields": {
+      "field": 6,
+      "consumer" :1,
+      "uri":"MilitaryExperienceType",
+      "method" : "X"
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 7,
+    "fields": {
+      "field": 7,
+      "consumer" :1,
+      "uri":"EducationValues",
+      "method" : "X",
+      "index": 18
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 8,
+    "fields": {
+      "field": 8,
+      "consumer" :1,
+      "uri":"StateType",
+      "method" : "X"
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 9,
+    "fields": {
+      "field": 9,
+      "consumer" :1,
+      "uri":"CoverageType",
+      "method" : "X",
+      "index" : 29
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 10,
+    "fields": {
+      "field": 10,
+      "consumer" :1,
+      "uri":"OccupationNameType",
+      "method" : "X",
+      "index" : 19
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 11,
+    "fields": {
+      "field": 11,
+      "consumer" :1,
+      "uri":"GarageType",
+      "method" : "X",
+      "index" : 31
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 12,
+    "fields": {
+      "field": 12,
+      "consumer" :1,
+      "uri":"ComphrensiveDeductibleType",
+      "method" : "X",
+      "index" : 32
+    }
+  },
+{
+    "model": "webapp.LeadFieldValue",
+    "pk": 13,
+    "fields": {
+      "field": 13,
+      "consumer" :1,
+      "uri":"CollisionDeductibleType",
+      "method" : "X",
+      "index" : 33
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 14,
+    "fields": {
+      "field": 14,
+      "consumer" :1,
+      "uri":"AnnualMilesType",
+      "method" : "X",
+      "index" : 26
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 15,
+    "fields": {
+      "field": 15,
+      "consumer" :1,
+      "uri":"VehUseValues",
+      "method" : "X",
+      "index" : 24
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 16,
+    "fields": {
+      "field": 16,
+      "consumer" :1,
+      "uri":"StateType",
+      "method" : "X"
+    }
+  },
+  {
+    "model": "webapp.LeadSource",
+    "pk": 1,
+    "fields": {
+      "name": "TJ",
+      "missing_fields": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
+    }
+  },
+ {
+    "model": "webapp.LeadSource",
+    "pk": 2,
+    "fields": {
+      "name": "Adsonar"
+    }
+  },
+   {
+    "model": "webapp.LeadSource",
+    "pk": 3,
+    "fields": {
+      "name": "Web Form"
+    }
+  },
+  {
+    "model": "webapp.InsuranceTypes",
+    "pk": 1,
+    "fields": {
+      "name": "Auto Insurance",
+      "short_name": "auto"
+    }
+  },
+  {
+    "model": "webapp.InsuranceTypes",
+    "pk": 2,
+    "fields": {
+      "name": "Home Insurance",
+      "short_name": "home"
+    }
+  },
+  {
+    "model": "webapp.InsuranceTypes",
+    "pk": 3,
+    "fields": {
+      "name": "Life Insurance",
+      "short_name": "life"
+      
+    }
+  },
+  {
+    "model": "webapp.LeadConsumer",
+    "pk": 1,
+    "fields": {
+      "name": "MOSS",
+      "affiliate_id":"CD1020",
+      "password":"cpacf123",
+      "url":"http://msadev1.msaff.com/xml-post/lead.php",
+      "request_type":"direct"
+    }
+  },
+  {
+    "model": "webapp.LeadConsumer",
+    "pk": 2,
+    "fields": {
+      "name": "IA",
+      "affiliate_id":"CD1",
+      "password":"CD1",
+      "url":"http://msadev1.msaff.com/xml-post/lead.php",
+      "request_type":"direct"
+    }
+  }
+] 
+    
+    

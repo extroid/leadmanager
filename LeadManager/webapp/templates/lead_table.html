@@ -1,0 +1,128 @@
+<div id="detail_table">
+    <script type="text/javascript">
+         $(function(){
+             $("#tabs").tabs();
+             
+             $('.moss_field_value_select').bind('change', function(){
+            	 var val = $(this).val();
+            	 if (val<0){ 
+            		 return false;
+                 }	 
+            	 var arr = val.split('_');
+            	 
+            	 $.fancybox.showActivity();
+            	 
+            	 $.ajax({
+                     type        : "POST",
+                     cache   : false,
+                     url     : '/lead/moss/ufld',
+                     data    : 'field='+arr[0]+'&value='+arr[1],
+                     success: function(data) {
+                        $.fancybox.hideActivity();
+                        if(data.code=='OK'){
+                        	$('#icon_'+arr[0]).html('<img src="/static/icons/package-install.png"/>');
+                        	$('#icon_'+arr[0]).show();
+                        	if (data.is_complete){
+                        		   $('#status_icon_'+data.entry_id).attr('src','/static/icons/gtk-info.png');
+                        		   $('#status_text_'+data.entry_id).text('Sell now');
+                        		   $('#status_text_'+data.entry_id).attr('href','/post/moss/'+data.entry_id);
+                        		   
+                        		   
+                        	}
+                        }else{
+                        	$('#icon_'+arr[0]).css('width:100px').html('<strong>data.message</strong>');
+                        	$('#icon_'+arr[0]).show();
+                            // alert(data.code+':'+data.message);
+                        }
+                     },
+                 },'json'); 
+            	 return false;
+             });
+             /*
+             $('#delete_action_form').bind('submit', function(ev){
+            	 ev.preventDefault()
+            	 // hide_panel();
+            	 $.fancybox.close();
+            	 // $("#detail").hide();
+                 // $.fancybox.resize();
+            	 
+             });
+             */
+         });
+     </script>  
+    <div id="tabs-container"> 
+	    <div id="tabs" style="overflow:auto;position:relative;">
+			<ul>
+			  <li><a href="#tabs-1"><span>Data</span></a></li>
+			  <li><a href="#tabs-2"><span>MOSS</span></a></li>
+			  <li><a href="#tabs-3"><span>History</span></a></li>
+			  
+			</ul>
+		
+			<div id="tabs-1">
+			    <form id="delete_action_form" action="/lead/delete" method="post">
+			    {% csrf_token %}
+			     <input type="hidden" name="lead_id" value="{{lead.id}}"/>
+			     <input type="submit" value="Delete lead"/>
+			    </form> 
+				<table>
+				   {% if lead.get_file.has_header %}
+				   <tr>
+				       {% for label in lead.get_file.get_header_labels %}
+				           <th title="{{label}}">{{label|truncatewords:3}}</th>
+				       {% endfor %}
+				   </tr>
+				   {% endif %}
+				   
+			       <tr>
+			       {% for cell in lead.get_data_as_list %}
+			           <td>{{cell}}</td>
+			       {% endfor %}
+			       </tr>
+				</table>
+			</div>
+			
+			<div id="tabs-2">
+               <table>
+                   <tr><th>Name</th><th>CSV Value</th><th>Value</th></tr>
+                    
+                   {% for entry in lead.get_moss_required_fields %}
+                       <tr>
+	                       <td width="20%">{{entry.value.field.name}}</td>
+	                       <td width="20%">{{entry.value.get_data}}</td>
+	                       <td width="60%">
+	                       <div>
+	                       <select name="{{entry.field.id}}" class="moss_field_value_select" style="display:block; float:left;">
+	                       <option value="-1">Please select...</option>    
+	                       {% for optval in entry.options %}
+	                           
+	                           <option 
+	                               {% if optval == entry.value.value %}selected="selected"{% endif %}  
+	                               value="{{entry.value.id}}_{{optval}}">{{optval}}
+	                           </option>
+	                       {% endfor %}
+	                       </select>
+	                       <div id="icon_{{entry.value.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
+	                       </div>
+	                       </td>
+                       </tr>
+                   {% endfor %}
+               </table>
+            </div>
+			
+			<div id="tabs-3">
+			   {% if lead.transactions.all %}  
+			   <ul>
+			       {% for t in lead.transactions.all %}
+			           <li>{{t}}</li>
+			       {% endfor %}
+			   </ul>
+			   {% else %}
+			     <p>There is no history yet...</p>
+			   {% endif %}
+			</div>
+		</div>
+	</div>
+
+	 
+</div>
