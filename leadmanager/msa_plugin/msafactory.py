@@ -274,7 +274,7 @@ def createVechicles(row, lead):
     vehicleData = msa.VehicleData ( VehYear=row[csvMap['Vehicle.Year']], 
                                     VehMake=row[csvMap['Vehicle.Make']], 
                                     VehModel=row[csvMap['Vehicle.Model']],
-                                    VehSubmodel=row[csvMap['sub-model']] )
+                                    VehSubmodel=get_reqval('sub-model', row, lead) )
     
     vehUse = msa.VehUseType(
                             valueOf_=get_reqval('VehUse', row, lead), 
