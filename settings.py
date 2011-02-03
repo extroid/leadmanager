@@ -1,6 +1,8 @@
 # Django settings for LeadManager project.
 
 DEBUG = True
+DEV_MODE = True
+
 TEMPLATE_DEBUG = DEBUG
 import os
 

@@ -8,7 +8,6 @@ import settings
 
 urlpatterns = patterns('',
     # Example:
-    # (r'^LeadManager/', include('LeadManager.foo.urls')),
     # (r'^(static|media)/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.STATIC_PAGES}),
     (r'^$', 'webapp.views.index'),
     (r'^upload_file/?$', 'webapp.views.upload_file'),
@@ -27,3 +26,8 @@ urlpatterns = patterns('',
     # Uncomment the next line to enable the admin:
     (r'^admin/', include(admin.site.urls)),
 )
+
+if settings.DEV_MODE:
+    urlpatterns += patterns('',
+                            (r'^(static|media)/(?P<path>.*)$', 'django.views.static.serve', {'document_root': settings.STATIC_PAGES}),
+                            )

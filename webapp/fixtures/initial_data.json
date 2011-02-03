@@ -140,13 +140,35 @@
     }
   },
   {
+    "model": "webapp.LeadField",
+    "pk": 21,
+    "fields": {
+      "name": "model"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 22,
+    "fields": {
+      "name": "make"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 23,
+    "fields": {
+      "name": "model-year"
+    }
+  },
+  {
     "model": "webapp.LeadFieldValue",
     "pk": 1,
     "fields": {
       "field": 1,
       "consumer" :1,
       "uri": "http://msadev1.msaff.com/xml-post/get_vehicle_info.php",
-      "method" : "H"
+      "method" : "H",
+      "ajax":true
     }
   },
   {
@@ -350,13 +372,46 @@
       "uri":"YesNo",
       "method" : "X"
     }
-  },  
+  }, 
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 21,
+    "fields": {
+      "field": 21,
+      "consumer" :1,
+      "uri": "http://msadev1.msaff.com/xml-post/get_vehicle_info.php",
+      "method" : "H",
+      "ajax":true
+    }
+  }, 
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 22,
+    "fields": {
+      "field": 22,
+      "consumer" :1,
+      "uri": "http://msadev1.msaff.com/xml-post/get_vehicle_info.php",
+      "method" : "H",
+      "ajax":true
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue",
+    "pk": 23,
+    "fields": {
+      "field": 23,
+      "consumer" :1,
+      "uri": "http://msadev1.msaff.com/xml-post/get_vehicle_info.php",
+      "method" : "H",
+      "ajax":true
+    }
+  },
   {
     "model": "webapp.LeadSource",
     "pk": 1,
     "fields": {
       "name": "TJ",
-      "missing_fields": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]
+      "missing_fields": [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23]
     }
   },
  {
@@ -396,6 +451,15 @@
       "name": "Life Insurance",
       "short_name": "life"
       
+    }
+  },
+  {
+    "model": "webapp.LeadFieldGroup",
+    "pk": 1,
+    "fields": {
+      "name": "Vehicle",
+      "field_values"; [11,13,14,15],
+      "consumer": 1
     }
   },
   {

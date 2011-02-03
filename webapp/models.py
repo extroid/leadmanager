@@ -56,7 +56,10 @@ class LeadConsumer(models.Model):
         for fv in self.required_fileds.all():
             if fv.field.name in names:
                 names.remove(fv.field.name)
-        return names        
+        return names
+    def get_not_grouped_values(self):
+        "Values which do not have groups"
+        return self.required_fields.filter(groups__isnull=True).all()        
     class Meta:
         verbose_name=_(u'Lead consumer')
         verbose_name_plural=_(u'Lead consumers')
@@ -76,6 +79,9 @@ class LeadFieldValue(models.Model):
     uri = models.URLField(null=True, blank=True)
     method = models.CharField(max_length=1, choices=METHODS,null=True, blank=True)
     index = models.SmallIntegerField(default=-1,null=True, blank=True)
+    attribute = models.BooleanField ( default=False )
+    required = models.BooleanField ( default=False )
+    ajax = models.BooleanField(default=False)
     
     def get_url(self):
         if not self.refval: return self.uri
@@ -94,7 +100,26 @@ class LeadFieldValue(models.Model):
     def __unicode__ (self):
         return u'%s:%s=[%s] by %s' % ( self.consumer.name, self.field.name, self.value, self.get_url())
 
+class LeadFieldGroup(models.Model):
+    name = models.CharField(max_length=256 )
+    rank = models.SmallIntegerField(default=-1)
+    field_values = models.ManyToManyField(LeadFieldValue, related_name='groups', null=False, blank=False)
+    refval = models.ForeignKey('LeadFieldGroup', null=True, blank=True)
+    consumer = models.ForeignKey(LeadConsumer, related_name='groups') 
     
+    class Meta:
+        verbose_name=_(u'Lead source')
+        verbose_name_plural=_(u'Lead sources')
+        
+    def create_instance(self):
+        _rank = LeadFieldGroup.objects.filter(refval=self).count()-1
+        return LeadFieldGroup(name = self.name, rank=_rank, consumer=self.consumer, refval = self)
+        
+    def is_template(self):
+        return self.refval is None    
+    def __unicode__ (self):
+        return u'%s' % (self.name)
+        
 class LeadSource(models.Model):
     "Incoming data source"
     
@@ -120,6 +145,7 @@ class LeadEntry(models.Model):
     state = models.CharField(max_length=256, null=True, blank=True)
     record = models.TextField()
     required_fields = models.ManyToManyField(LeadFieldValue, related_name='entries', null=True, blank=True)
+    field_groups = models.ManyToManyField(LeadFieldGroup, related_name='entries', null=True, blank=True)
     niche = models.ForeignKey('InsuranceTypes', verbose_name=_(u'Niche'))
     source = models.ForeignKey(LeadSource)
     
