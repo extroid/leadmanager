@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block pagescripts %} {% endblock %}
+
+{% block parentmenu%}Lead Manager&nbsp;/&nbsp;{% endblock %}{% block menu%}<a href="/upload_file">Upload lead</a>{%endblock%}
+{% block pagetitle%}<h1>Lead Manager</h1>{% endblock %}
+{% block content %}
+	    <table>
+	        <tr>
+	            <th>Niche</th>
+	            <th>Lead Source</th>
+	            <th>Datetime</th>
+	            <th>Filename</th>
+	            <th>Number of leads</th>
+	            <th>Cost</th>
+	            <th>Revenue</th>
+	            <th>Delete</th>
+	        </tr>
+	        {% if lead_files %}
+		        {% for entry in lead_files %}
+		        <tr>
+		            <td>{{entry.get_niche}}</td>
+		            <td>{{entry.source}}</td>
+		            <td>{{entry.upload_date|date:"SHORT_DATE_FORMAT"}}</td>
+		            <td><a class="lead_data" href="leadfile/{{entry.id}}">{{entry.get_filename}}</a></td>
+		            <td>{{entry.entries.count}}</td>
+		            <td>{{entry.cost}}</td>
+		            <td>{{entry.get_revenue}}</td>
+		            <td><a class="delete_file" href="{{entry.id}}_{{entry.get_filename}}">Delete</a></td>
+		        </tr>    
+		        {% endfor %}
+		        <tr>
+	                <td class="total">&nbsp;</td>
+	                <td class="total">Total</td>
+	                <td class="total">&nbsp;</td>
+	                <td class="total">&nbsp;</td>
+	                <td class="total">&nbsp;</td>
+	                <td class="total">{{lead_files.0.get_total_cost}}</td>
+	                <td class="total">{{lead_files.0.get_total_revenue}}</td>
+	                <td class="total">&nbsp;</td>
+	            </tr>    
+	        {% endif %}    
+	    </table>
+	    <script type="text/javascript"> 
+        $(document).ready(function() {
+            $(".lead_data").fancybox(
+            		/*
+            		{
+            		    ajax : {
+	                        type    : "POST",
+	                        data    : "a=b"
+	                    } } */
+            		);
+   
+            
+            $('.delete_file').bind('click', function(){
+                var href = $(this).attr('href').split("_");
+                if (confirm('You are about to remove "'+href[1]+'". Are you sure?"')){
+                    $.post('/delete/leadfile/'+href[0],function(data){
+                        location.href='/';
+                        return false;
+                    });
+                }   
+                return false;
+            });
+        });
+</script>
+{% endblock %}

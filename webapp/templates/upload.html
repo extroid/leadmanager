@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block parentmenu%}<a href="/">Lead Manager</a>&nbsp;/&nbsp;{% endblock %}{% block menu%}Upload lead{%endblock%}
+{% block pagetitle%}<h1>Lead Uploader</h1>{% endblock %}
+
+{% block content %}
+
+{% if form %}
+	<form action="/upload_file" method="post" enctype="multipart/form-data">
+	    {% csrf_token %}
+	    <table>
+	        {{form}}
+	    </table>
+	    <input type="submit" value="Upload"/>
+	</form>    
+{% endif %}
+	
+{% if lead_file %}
+    <h2>{{lead_file.get_filename}}</h2>
+	<script type="text/javascript">
+    $(function(){
+            //$(".show_detail").fancybox();
+            
+            $("#detail_table_close").bind("click", function() {
+                $("#detail").hide();
+                return false;
+            });
+            
+            $(".show_detail").bind("click", function() {
+                $.get($(this).attr('href'), function(data) {
+                     $('#detail_content').html(data);
+                   });
+                $('#detail').show();
+                return false;
+            });
+            
+            $('.delete_file').bind('click', function(){
+                var href = $(this).attr('href').split("_");
+                if (confirm('You are about to remove "'+href[1]+'". Are you sure?"')){
+                    $.post('/delete/leadfile/'+href[0],function(data){
+                        location.href='/';
+                    });
+                }   
+                return false;
+            });
+    });        
+    </script>
+    <div><a class="delete_file" title="It deletes all database data and file from disk" href="{{lead_file.id}}_{{lead_file.get_filename}}">Delete file and all leads</a></div>
+	{% if lead_file.entries.all %}
+	    <div id="detail" style="display:none">
+	    <div style="float: right;"><a id="detail_table_close" href="#">Close</a></div>
+	    <br/>
+	    <div id="detail_content"></div>
+	    </div>
+	        
+	    <table>
+	       <tr>
+	           <th>Show</th>
+	           <th>Full Name</th>
+	           <th>City</th>
+	           <th>State</th>
+	       </tr>
+	      {% for entry in lead_file.entries.all %}
+	          <tr>
+	              <td><a class="show_detail" href="/lead/{{entry.id}}">Detail</a></td>
+	              <td>{{entry.first_name}}&nbsp;{{entry.last_name}}</td>
+	              <td>{{entry.city}}</td>
+	              <td>{{entry.state}}</td>
+	          </tr>
+	      {% endfor %}
+	    </table>
+	{% endif %}
+{% endif %}	
+{% endblock %}
