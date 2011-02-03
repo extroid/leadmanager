@@ -114,7 +114,12 @@ class LeadFieldGroup(models.Model):
     def create_instance(self):
         _rank = LeadFieldGroup.objects.filter(refval=self).count()-1
         return LeadFieldGroup(name = self.name, rank=_rank, consumer=self.consumer, refval = self)
-        
+    def get_value_templates(self):
+        self_group = self if self.is_template() else self.refval
+        return self.field_values.filter(refval__isnull=True, groups=self_group).all()
+    def get_values(self):
+        if self.is_template(): return self.get_value_templates() 
+        return self.field_values.filter(refval__isnull=False, groups=self).all()    
     def is_template(self):
         return self.refval is None    
     def __unicode__ (self):
