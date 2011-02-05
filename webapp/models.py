@@ -11,6 +11,12 @@ import settings
 class LeadConsumerException(Exception):
     pass    
 
+class ValueHandler(object):
+    def __init__ (self):
+        self.options = None
+    def set_options(self, data):
+        self.options = data
+        
 class LeadField(models.Model):
     "Represents a data field"
     name = models.CharField(max_length=256, null=False, blank=False)
@@ -53,13 +59,12 @@ class LeadConsumer(models.Model):
         post_lead ( lead, self, self.post_lead_callback )
         return LeadTransaction.objects.filter(lead=lead, consumer=self).order_by('-attempt_datetime')[0]
     def get_diff(self, names):
-        for fv in self.required_fileds.all():
+        for fv in self.get_metagroup().get_values():
             if fv.field.name in names:
                 names.remove(fv.field.name)
         return names
-    def get_not_grouped_values(self):
-        "Values which do not have groups"
-        return self.required_fields.filter(groups__isnull=True).all()        
+    def get_metagroup(self):
+        return self.meta_group.all()[0]        
     class Meta:
         verbose_name=_(u'Lead consumer')
         verbose_name_plural=_(u'Lead consumers')
@@ -70,58 +75,150 @@ class LeadConsumer(models.Model):
 class LeadFieldValue(models.Model):
     "Represents a data field value"
     METHODS =( ('H','Get through HTTP request'),
-               ('X','Get from XSD')
+               ('X','Get from XSD'),
+               ('R','Get from record'),
+               ('V','Get/Set as value'),
               )
     field = models.ForeignKey(LeadField, related_name='value_entry')
     refval = models.ForeignKey('LeadFieldValue', null=True, blank=True)
     value = models.CharField(max_length=256, null=True, blank=True)
-    consumer = models.ForeignKey(LeadConsumer, related_name='required_fileds')
+    consumer = models.ForeignKey(LeadConsumer, related_name='values')
     uri = models.URLField(null=True, blank=True)
     method = models.CharField(max_length=1, choices=METHODS,null=True, blank=True)
     index = models.SmallIntegerField(default=-1,null=True, blank=True)
     attribute = models.BooleanField ( default=False )
-    required = models.BooleanField ( default=False )
+    required = models.BooleanField ( default=True )
     ajax = models.BooleanField(default=False)
     
     def get_url(self):
-        if not self.refval: return self.uri
-        else:
-            return self.refval.uri
+        return self.uri if self.refval is None else self.refval.uri
+    
     class Meta:
         verbose_name=_(u'Lead Field Value')
         verbose_name_plural=_(u'Lead Field Values')
+        
+    def is_template(self):
+        return self.refval is None
+    
+    def create_instance(self):
+        self_val = self if self.is_template() else self.refval
+        fv = LeadFieldValue(field = self_val.field, 
+                       method=self_val.method,
+                       uri=self_val.uri,
+                       attribute = self_val.attribute,
+                       required = self_val.required,
+                       consumer=self_val.consumer, 
+                       ajax = self_val.ajax,
+                       index = self_val.index,
+                       refval = self_val)  
+        fv.save()
+        return fv
+    
+    def is_input(self):
+        return self.method in ('V','R') 
+    
+    def is_dropdown(self):
+        return self.method not in ('V','R')
+    
     def get_data(self):
-        v = self 
-        if self.refval:
-            v = self.refval
-        if v.index <0:
-            return '* Not provided *'
-        return self.entries.all()[0].get_data_as_list()[v.index]    
+        if self.method=='R':
+            if self.index <0:
+                return '* Not provided *'
+            return self.entries.all()[0].get_data_as_list()[self.index]
+        else:
+            return self.value
+            
     def __unicode__ (self):
         return u'%s:%s=[%s] by %s' % ( self.consumer.name, self.field.name, self.value, self.get_url())
 
 class LeadFieldGroup(models.Model):
     name = models.CharField(max_length=256 )
-    rank = models.SmallIntegerField(default=-1)
-    field_values = models.ManyToManyField(LeadFieldValue, related_name='groups', null=False, blank=False)
+    data_values = models.ManyToManyField(LeadFieldValue, related_name='groups', null=True)
     refval = models.ForeignKey('LeadFieldGroup', null=True, blank=True)
-    consumer = models.ForeignKey(LeadConsumer, related_name='groups') 
+    consumer = models.ForeignKey(LeadConsumer, related_name='meta_group')
+    parent = models.ForeignKey('LeadFieldGroup', related_name='children', null=True)
     
     class Meta:
-        verbose_name=_(u'Lead source')
-        verbose_name_plural=_(u'Lead sources')
+        verbose_name=_(u'Lead field group')
+        verbose_name_plural=_(u'Lead field groups')
         
     def create_instance(self):
-        _rank = LeadFieldGroup.objects.filter(refval=self).count()-1
-        return LeadFieldGroup(name = self.name, rank=_rank, consumer=self.consumer, refval = self)
+        self_group = self if self.is_template() else self.refval 
+        g = LeadFieldGroup(name = self_group.name, consumer=self_group.consumer, refval = self_group)
+        g.save()
+        g.create_data()
+        return g
+    def create_data(self):
+        for fv in self.get_value_templates():
+            self.data_values.add(fv.create_instance())
+        self.save()
+    def create_instance_tree(self):
+        return self.create_tree(self.create_instance())
+            
+    def create_tree(self, instance):
+        for group_tpl in instance.get_subgroups():
+            subinstance = group_tpl.create_instance()
+            subinstance.parent=instance
+            subinstance.save()
+            group_tpl.create_tree ( subinstance )
+        return instance      
+    
+    def delete_instance_tree(self):
+        if self.is_template(): return 
+        for value in self.get_values():
+            value.delete()    
+        for child in self.children.all():
+            child.delete_instance_tree()
+        self.delete()    
+        
+    def visit_instance_tree(self, value_visitor):
+        if self.is_template(): return 
+        for value in self.get_values():
+            value_visitor ( value )    
+        for child in self.children.all():
+            child.visit_instance_tree ( value_visitor )
+            
+    def get_subgroups(self):
+        self_group = self if self.is_template() else self.refval
+        return self_group.children.all()
+    
+    def get_instance_subgroup(self, group_name):
+        return None if self.children is None or self.children.filter(name=group_name).count()==0 else self.children.get(name=group_name)
+        
+    def get_instances(self):
+        self_group = self if self.is_template() else self.refval
+        return LeadFieldGroup.objects.filter(refval = self_group).all()
     def get_value_templates(self):
         self_group = self if self.is_template() else self.refval
-        return self.field_values.filter(refval__isnull=True, groups=self_group).all()
+        return self_group.data_values.filter(refval__isnull=True).all()
     def get_values(self):
         if self.is_template(): return self.get_value_templates() 
-        return self.field_values.filter(refval__isnull=False, groups=self).all()    
+        return self.data_values.filter(refval__isnull=False, groups=self).all() 
+    def get_value_data(self, filed_name):  
+        qset = self.data_values.filter(refval__isnull=False, groups=self, field__name=filed_name)
+        return None if len(qset) ==0 else qset[0].value  
     def is_template(self):
-        return self.refval is None    
+        return self.refval is None
+    def check_required_complete(self):
+        for reqfld in self.data_values.filter(required=True):
+            if reqfld.value is None:
+                return False  
+    def is_complete(self):
+        if self.is_template(): return True
+        if not self.check_required_complete(): return False    
+        for child in self.children.all():
+            if not child.is_complete():
+                return False
+        return True    
+    def print_template_tree(self, grp = None, ident=1):
+        if grp is None:
+            grp = self
+            print '%s (%s)' %(self.name,len(self.get_instances())) 
+        s = ' '*ident    
+        for sub in grp.get_subgroups():
+            print '%s (%s)' %(s+sub.name,len(grp.get_instances()))
+            sub.print_template_tree(sub, ident+1)
+        print s        
     def __unicode__ (self):
         return u'%s' % (self.name)
         
@@ -129,10 +226,6 @@ class LeadSource(models.Model):
     "Incoming data source"
     
     name = models.CharField(max_length=256, null=False, blank=False)
-    missing_fields = models.ManyToManyField(LeadField, related_name='sources')
-    
-    def get_missing_field_names(self):
-        return [f.name for f in self.missing_fields.all()]
      
     class Meta:
         verbose_name=_(u'Lead source')
@@ -149,8 +242,7 @@ class LeadEntry(models.Model):
     city = models.CharField(max_length=256, null=False, blank=False)
     state = models.CharField(max_length=256, null=True, blank=True)
     record = models.TextField()
-    required_fields = models.ManyToManyField(LeadFieldValue, related_name='entries', null=True, blank=True)
-    field_groups = models.ManyToManyField(LeadFieldGroup, related_name='entries', null=True, blank=True)
+    data_groups = models.ManyToManyField(LeadFieldGroup, related_name='entries', null=True, blank=True)
     niche = models.ForeignKey('InsuranceTypes', verbose_name=_(u'Niche'))
     source = models.ForeignKey(LeadSource)
     
@@ -162,42 +254,36 @@ class LeadEntry(models.Model):
             return self.transactions.get(consumer=consumer).payout
         else:
             l = self.transactions.filter(result='S').aggregate(Sum('payout'))
-            print l
             if 'payout__sum' in l and l['payout__sum']:
                 return l['payout__sum']
             else:
                 return 0
+    def get_moss_data(self):
+        MOSS = LeadConsumer.objects.get(name='MOSS')
+        if self.data_groups.filter(consumer=MOSS).count()==0: return None
+        return self.data_groups.get(consumer=MOSS)
     
-    def get_moss_required_fields(self):
+    def create_or_get_moss_data (self):
+        if self.get_moss_data(): return self.get_moss_data() 
         MOSS = LeadConsumer.objects.get(name='MOSS')
         
-        qset = LeadFieldValue.objects.filter(consumer=MOSS, refval__isnull=True)
-        
-#        qset = LeadFieldValue.objects.filter(field__sources__in=self.get_file().source.missing_fields.all(), 
-#                                             consumer=MOSS, refval__isnull=True)
-        fields = []
-        class Handler(object):
-            def __init__ (self):
-                self.options = None
-            def set_options(self, data):
-                self.options = data
+        moss_data = MOSS.get_metagroup().create_instance_tree()
+        self.data_groups.add(moss_data)
+    def delete_moss_data(self):
+        moss_data = self.get_moss_data()
+        if moss_data:
+            moss_data.delete_instance_tree()
+            
+    def delete_lead(self):
+        self.delete_moss_data()        
+        self.delete ( )
                 
-        for refFieldValue in qset:
-            if self.required_fields.filter(consumer=MOSS, field=refFieldValue.field).count()==0:
-                print 'Clone field', refFieldValue
-                fieldValue          = LeadFieldValue() 
-                fieldValue.refval   = refFieldValue
-                fieldValue.field    = refFieldValue.field
-                fieldValue.method   = refFieldValue.method
-                fieldValue.consumer = refFieldValue.consumer
-                
-#                fieldValue = LeadFieldValue(consumer=MOSS, field=refFieldValue.field, refval = refFieldValue )
-                fieldValue.save()
-                self.required_fields.add(fieldValue)
-                self.save()
-            else:
-                fieldValue = self.required_fields.get(consumer=MOSS, field=refFieldValue.field)
-            handler = Handler()
+    def get_moss_value_options(self):
+        self.value_fields = []    
+        moss_data = self.create_or_get_moss_data()
+         
+        def option_collector(fieldValue):           
+            handler = ValueHandler()
             get_field_value ( fieldValue, self, handler.set_options )
             if len(handler.options)==1:
                 fieldValue.value=handler.options[0]
@@ -205,32 +291,22 @@ class LeadEntry(models.Model):
             elif fieldValue.get_data() in handler.options:
                 fieldValue.value=fieldValue.get_data()
                 fieldValue.save()    
-            fields.append({'value':fieldValue, 'options':handler.options})
-        return fields    
-    def is_required_by_moss(self, field_name):
-        fset = LeadField.objects.filter(name=field_name)
-        if fset.count()==0: 
-            return False
-        MOSS = LeadConsumer.objects.get(name='MOSS')
-        return self.required_fields.filter(field=fset[0], consumer=MOSS).count()>0
-    def get_moss_field_value(self, field_name):
+            self.value_fields.append({'value':fieldValue, 'options':handler.options})
+        moss_data.visit_instance_tree ( option_collector )    
+            
+        return self.value_fields    
+    
+    def get_moss_field_value(self, field_name, group='Lead'):
         print 'get field value', field_name
         MOSS = LeadConsumer.objects.get(name='MOSS')
-        return self.required_fields.get(field__name=field_name, consumer=MOSS).value    
+        return LeadFieldValue.get(field__name=field_name, consumer=MOSS, groups=group).value    
+    
     def is_moss_complete(self):
-        MOSS = LeadConsumer.objects.get(name='MOSS')
-        numberOfFields = LeadFieldValue.objects.filter(consumer=MOSS, refval__isnull=True).count()
-#        numberOfFields = LeadFieldValue.objects.filter(consumer=MOSS, entries=self, value__isnull=True).count()
+        return self.get_moss_data().is_complete()
 
-#        numberOfFields = self.get_file().source.missing_fields.count()
-        qset = self.required_fields.filter(value__isnull=False)
-        return numberOfFields-qset.count()==0 
     def is_complete(self):
         return self.is_moss_complete()
     
-    def save(self, *args, **kwargs):
-        super(LeadEntry, self).save(*args, **kwargs) # Call the "real" save() method.
-        
     def get_file(self):
         if self.parent_file.count()==0: return None
         return self.parent_file.all()[0]
@@ -363,7 +439,7 @@ class LeadFile(models.Model):
         entry.save()
         self.entries.add(entry)
         self.save()
-        entry.get_moss_required_fields()
+        entry.get_moss_value_options()
     def get_niche(self):
         return self.insurance_type.name
     def get_filename(self):

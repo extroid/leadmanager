@@ -114,7 +114,7 @@
                <table>
                    <tr><th>Name</th><th>CSV Value</th><th>Value</th></tr>
                     
-                   {% for entry in lead.get_moss_required_fields %}
+                   {% for entry in lead.consumer.get_default_value_options %}
                        <tr>
 	                       <td width="20%">{{entry.value.field.name}}</td>
 	                       <td width="20%">{{entry.value.get_data}}</td>

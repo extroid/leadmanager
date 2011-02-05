@@ -9,7 +9,7 @@ from django.db.models import Sum
 
 from datetime import date
 
-from models import LeadFile, LeadConsumer, LeadEntry, LeadFieldValue, LeadTransaction
+from models import LeadFile, LeadConsumer, LeadEntry, LeadFieldValue, LeadTransaction, LeadFieldGroup
 from msa_plugin.msafactory import csvMap, validate_lead as moss_validate_lead
 from lxml.etree import XMLSyntaxError
 
@@ -130,6 +130,11 @@ def new_lead(request, consumer_name):
                               {'titles': titles, 'error':e,'form':leadForm},
                               context_instance=RequestContext(request)
                               )    
+                
+def new_group_instance(request, group_tpl_id):
+    group_template = get_object_or_404(LeadFieldGroup, pk=group_tpl_id);
+    group_instance = group_template.create_instance()
+    render_to_response('group_instance.html', {'instance': group_instance})
 @csrf_protect
 def show_leadsperday(request, qdate):
     try:

@@ -2,7 +2,7 @@
 {% block pagescripts %} 
 <script type="text/javascript">
     $(function(){
-        $('.moss_field_value_select').bind('change', function(){
+    	function save_field_value(){
             var val = $(this).val();
             if (val<0){ 
                 return false;
@@ -27,6 +27,34 @@
                 },
             },'json'); 
             return false;
+        };
+    	
+        $('.field_value_select').bind('change', save_field_value);
+        
+        $(".field_groups").hide();
+        $(".fold_group").bind('click', function(){
+        	var $field_groups = $(this).find(".field_groups").get(0);
+        	if($field_groups.is(":visible")){
+        		$field_groups.hide();
+        		$(this).text('+');
+        	}else{
+        		$field_groups.show();
+        		$(this).text('-');
+        	}
+        });
+        $(".add_group").bind('click', function(){
+            var $field_groups = $(this).find(".field_groups").get(0);
+            var fg_visible = $field_groups.is(":visible");
+            $.ajax({
+            	 type        : "POST",
+                 cache   : false,
+                 url     : $(this).attr('href'),
+                 success: function(data) {
+                   	$field_groups.append(data);         
+                   	$('.field_value_select').bind('change', save_field_value);
+                   	if(!fg_visible) $field_groups.show(); 	
+                 }   
+            });
         });
     });
 </script>  
@@ -73,12 +101,12 @@
 <div style="float: left; display: block; width: 59%; margin-left: 10px;">
 {% if lead %}
     <table> 
-	{% for entry in lead.get_moss_required_fields %}
+	{% for entry in lead.consumer.get_moss_value_options %}
 	   <tr>
 		 <td width="20%">{{entry.value.field.name}}</td>
 		 <td width="80%">
 			 <div>
-			 <select name="{{entry.field.id}}" class="moss_field_value_select" style="display:block; float:left;">
+			 <select name="{{entry.field.id}}" class="field_value_select" style="display:block; float:left;">
 			 <option value="-1">Please select...</option>    
 			 {% for optval in entry.options %}
 			     
@@ -91,10 +119,17 @@
 			 <div id="icon_{{entry.value.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
 			 </div>
 		 </td>
-		 
 	   </tr>
 	{% endfor %}
-</table>	
+</table>
+{% for group in lead.get_moss_groups %}
+    <div>
+        <span class="group_name">{{group.name}}</span>&nbsp;
+        <a class ="fold_group" href="">+</a>&nbsp;<a class ="add_group" href="/lead/new_group/{{group.id}}">Add</a>
+        <div class="field_groups"></div>
+    </div>
+{% endfor %}
+    	
 {% endif %}
 </div>
 {% endblock %}

@@ -228,18 +228,18 @@ def get_reqval(label, row, lead):
         return None
     
 def createPersonalInfo(row, lead):
+    moss = lead.get_moss_data()
     personID      = 1 
-#    gender        = getGender(row[csvMap['PersonalInfo.Gender']]) 
-    gender        = get_reqval('PersonalInfo.Gender', row, lead)
-    maritalStatus = get_reqval('PersonalInfo.MaritalStatus', row, lead)
-    firstName     = row[csvMap['PersonalInfo.FirstName']] 
-    lastName      = row[csvMap['PersonalInfo.LastName']]
-    birthDate     = getBirthday(row[csvMap['PersonalInfo.BirthDate']])
-    occupation    = get_reqval('Occupation', row, lead)
-    education_    = get_reqval('Education', row, lead)
-    militaryExperience = get_reqval('MilitaryExperience', row, lead)
+    gender        = moss.get_field_value('Gender')
+    maritalStatus = moss.get_field_value('MaritalStatus')
+    firstName     = moss.get_field_value('FirstName') 
+    lastName      = moss.get_field_value('LastName')
+    birthDate     = getBirthday(moss.get_field_value('BirthDate'))
+    occupation    = moss.get_field_value('Occupation')
+    education_    = moss.get_field_value('Education')
+    militaryExperience = moss.get_field_value('MilitaryExperience')
     creditRaiting = msa.CreditRatingType(Bankruptcy="No", valueOf_="Excellent")
-    education     = msa.EducationType(get_reqval('PersonalInfo.GoodStudentDiscount', row, lead), education_)
+    education     = msa.EducationType(moss.get_field_value('GoodStudentDiscount'), education_)
     relationshipToApplicant = "Self"
     
     # socialSecurityNumber = militaryExperience = creditRating = None
@@ -256,11 +256,12 @@ def createPersonalInfo(row, lead):
                             MilitaryExperience=militaryExperience,
                             CreditRating=creditRaiting)
 def createDriver(row, lead):
+    moss = lead.get_moss_data()
     primaryVehicle=1
     driverID = 1
     personalInfo = createPersonalInfo(row, lead)
-    state = get_reqval('DriversLicense.State', row, lead) 
-    driversLicense = msa.DriversLicense('No', Number=row[csvMap['Driver.LicenseNumber']] or None, LicensedAge=row[csvMap['Driver.LicenseIssuedAge']], State=state)
+    state = moss.get_field_value('State') 
+    driversLicense = msa.DriversLicense('No', Number=moss.get_field_value('LicenseNumber') or None, LicensedAge=moss.get_field_value('LicenseIssuedAge'), State=state)
     drivingRecord = msa.DrivingRecord ( SR22Required = get_reqval('Driver.SR22', row, lead), DriverTraining="Yes" )
 
     return msa.Driver(driverID, personalInfo, primaryVehicle, driversLicense, drivingRecord)
@@ -270,22 +271,23 @@ def createDrivers(row, lead):
     drivers.add_Driver ( createDriver ( row, lead ) )
     return drivers
 def createVechicles(row, lead):
+    moss = lead.get_moss_data()
     vehicleID = 1
-    vehicleData = msa.VehicleData ( VehYear=row[csvMap['Vehicle.Year']], 
-                                    VehMake=row[csvMap['Vehicle.Make']], 
-                                    VehModel=row[csvMap['Vehicle.Model']], 
-                                    VehSubmodel=get_reqval('sub-model', row, lead) )
+    vehicleData = msa.VehicleData ( VehYear=moss.get_field_value('model-year'), 
+                                    VehMake=moss.get_field_value('make'), 
+                                    VehModel=moss.get_field_value('model'), 
+                                    VehSubmodel=moss.get_field_value('sub-model') )
     
-    vehUse = msa.VehUseType( valueOf_=get_reqval('VehUse', row, lead), 
-                            AnnualMiles=get_reqval('VehUse.AnnualMiles', row, lead),  
-                            DailyCommuteMiles=row[csvMap['Vehicle.Use.daily']], 
+    vehUse = msa.VehUseType( valueOf_=moss.get_field_value('VehUse'), 
+                            AnnualMiles=moss.get_field_value('VehUse.AnnualMiles'),  
+                            DailyCommuteMiles=moss.get_field_value('DailyCommuteMiles'), 
                             WeeklyCommuteDays="0" 
                             )
     ownership = 'Yes' 
-    comphrensiveDeductible = get_reqval('ComphrensiveDeductible', row, lead)
-    collisionDeductible = get_reqval('CollisionDeductible', row, lead)
+    comphrensiveDeductible = moss.get_field_value('ComphrensiveDeductible')
+    collisionDeductible = moss.get_field_value('CollisionDeductible')
     
-    garageType = get_reqval('GarageType', row, lead)
+    garageType = moss.get_field_value('GarageType')
     
     vehicle = msa.Vehicle(Ownership=ownership, VehicleID=vehicleID, VehicleData=vehicleData, VehUse=vehUse, ComphrensiveDeductible=comphrensiveDeductible, CollisionDeductible=collisionDeductible, GarageType=garageType)
     vehicles = msa.Vehicles()
@@ -303,25 +305,27 @@ def createHomeLead(row, lead):
     return None
 
 def createContactDetails(row, lead):
-    firstName     = row[csvMap['PersonalInfo.FirstName']] 
-    lastName      = row[csvMap['PersonalInfo.LastName']]
-    streetAddress = getStreetAddress ( row )
-    city          = row[csvMap['PersonalInfo.City']]
-    state         = get_reqval('PersonalInfo.State', row, lead)
-    ZIPCode       = row[csvMap['PersonalInfo.ZIPCode']]
-    email         = row[csvMap['PersonalInfo.Email']]  
+    moss = lead.get_moss_data()  
+    firstName     = moss.get_field_value('FirstName') 
+    lastName      = moss.get_field_value('LastName')
+#    streetAddress = getStreetAddress ( row )
+    streetAddress = moss.get_field_value('StreetAddress')
+    city          = moss.get_field_value('City')
+    state         = moss.get_field_value('State')
+    ZIPCode       = moss.get_field_value('ZIPCode')
+    email         = moss.get_field_value('Email')  
     
     phoneNumbers  = msa.PhoneNumbers()
-    if row[csvMap['PersonalInfo.WorkPhone']]:
-        phoneNumbers.add_PhoneNumber( msa.PhoneNumberType ('Work', row[csvMap['PersonalInfo.WorkPhone']]) )
-    if row[csvMap['PersonalInfo.CellPhone']]:
-        phoneNumbers.add_PhoneNumber( msa.PhoneNumberType ('Cell', row[csvMap['PersonalInfo.CellPhone']]) )                                                                 
+    if moss.get_field_value('WorkPhone'):
+        phoneNumbers.add_PhoneNumber( msa.PhoneNumberType ('Work', moss.get_field_value('WorkPhone')) )
+    if moss.get_field_value('CellPhone'):
+        phoneNumbers.add_PhoneNumber( msa.PhoneNumberType ('Cell', moss.get_field_value('CellPhone')) )                                                                 
        
 #    residenceStatusPeriod = row[csvMap['residenceStatusPeriod']]
 
-    monthsAt = get_reqval('ResidenceStatus.MonthsAt', row, lead)
-    yearsAt = get_reqval('ResidenceStatus.YearsAt', row, lead)
-    residenceStatus_ = get_reqval('ResidenceStatus', row, lead)
+    monthsAt = moss.get_field_value('ResidenceStatus.MonthsAt')
+    yearsAt = moss.get_field_value('ResidenceStatus.YearsAt')
+    residenceStatus_ = moss.get_field_value('ResidenceStatus')
     
     residenceStatus = msa.ResidenceStatusType( MonthsAt=monthsAt, 
                                                  YearsAt=yearsAt, 
