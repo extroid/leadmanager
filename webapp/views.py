@@ -10,7 +10,8 @@ from django.db.models import Sum
 from datetime import date
 
 from models import LeadFile, LeadConsumer, LeadEntry, LeadFieldValue, LeadTransaction, LeadFieldGroup
-from msa_plugin.msafactory import csvMap, validate_lead as moss_validate_lead
+from models import ValueHandler
+from msa_plugin.msafactory import csvMap, validate_lead as moss_validate_lead, get_required_field_value
 from lxml.etree import XMLSyntaxError
 
 class Value:
@@ -63,15 +64,27 @@ def delete_lead(request):
             t.delete()
         lead.delete()    
         return HttpResponseRedirect('/')
-            
+
+def set_value_options(values, group):
+    q = []
+    for fieldValue in values:
+        if fieldValue.is_input():
+            q.append((fieldValue, None)) 
+            continue         
+        handler = ValueHandler()
+        get_required_field_value ( fieldValue, group, handler.set_options )
+        q.append((fieldValue, handler.options))
+    return q    
+        
 @csrf_protect    
 def new_lead(request, consumer_name):
     lead = None
     if consumer_name=='moss':
         consumer = get_object_or_404(LeadConsumer, name='MOSS')
-        titles = [x for x in csvMap.keys()]
-        titles = consumer.get_diff(titles)
-        titles.sort()
+        
+        titles = consumer.get_metagroup().get_value_templates()
+        titles = set_value_options(titles, consumer.get_metagroup())    
+        
         if request.method=='GET':
             return render_to_response('mossform.html', 
                                   {'titles': titles, 'lead':lead, 'form':LeadEntryForm()},
@@ -95,28 +108,47 @@ def new_lead(request, consumer_name):
             lead.niche = leadForm.cleaned_data['niche'] 
                 
             try:    
-                lead.first_name = request.POST['PersonalInfo.FirstName']            
-                lead.last_name = request.POST['PersonalInfo.LastName']
-#                lead.state = request.POST['PersonalInfo.State']
-                lead.city = request.POST['PersonalInfo.City']
-                
-                record = ['' for x in range(0, 44)]
-
-                titles = []        
-                for attr in request.POST:
-                    if attr not in csvMap: continue
-                    record[csvMap[attr]]=request.POST[attr]
-                    titles.append(Value(attr,request.POST[attr]))
-                lead.set_data_record(record)
+                lead.first_name = request.POST['FirstName']            
+                lead.last_name = request.POST['LastName']
+                lead.state = request.POST['State']
+                lead.city = request.POST['City']
                 lead.save()
+                options = {}
+                def set_value_options2(group, fieldValue):
+                    options[fieldValue]=None
+                    if fieldValue.is_input(): return         
+                    handler = ValueHandler()
+                    get_required_field_value ( fieldValue, group, handler.set_options )
+                    options[fieldValue]=handler.options
+                    
+                moss_data = lead.create_or_get_moss_data()
+                for fieldValue in moss_data.get_values():
+                    moss_data.set_value_data(fieldValue.field.name,request.POST[fieldValue.field.name])
+                moss_data = lead.get_moss_value_options(set_value_options2)
+                titles = []
+                
+                subgroups = []
+                for entry in moss_data.get_values():
+                    titles.append((entry, options[entry]))
+                    
+                grp = []    
+                veh = moss_data.get_instance_subgroup('Vehicle')
+                for entry in veh.get_values():
+                    grp.append((entry, options[entry]))
+                subgroups.append((veh,grp))        
+                
+                grp = []    
+                drv = moss_data.get_instance_subgroup('Driver')
+                for entry in drv.get_values():
+                    grp.append((entry, options[entry]))
+                subgroups.append((drv,grp))
+                
                 if 'lead_id' not in request.POST: 
                     return render_to_response('mossform.html', 
-                                  {'titles': titles, 'lead':lead, 'form':leadForm},
+                                  {'titles': titles, 'subgroups':subgroups,'lead':lead, 'form':leadForm},
                                   context_instance=RequestContext(request)
                                   )
                 else:
-                    lead.state = lead.get_moss_field_value('PersonalInfo.State')
-                    lead.save()
                     try:
                         moss_validate_lead ( lead )
                         return HttpResponseRedirect('/lead/moss/new_lead')

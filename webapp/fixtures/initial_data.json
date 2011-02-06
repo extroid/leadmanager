@@ -17,14 +17,14 @@
     "model": "webapp.LeadField",
     "pk": 3,
     "fields": {
-      "name": "ResidenceStatus.YearsAt"
+      "name": "YearsAt"
     }
   },
   {
     "model": "webapp.LeadField",
     "pk": 4,
     "fields": {
-      "name": "ResidenceStatus.MonthsAt"
+      "name": "MonthsAt"
     }
   },
   {
@@ -52,7 +52,7 @@
     "model": "webapp.LeadField",
     "pk": 8,
     "fields": {
-      "name": "DriversLicense.State"
+      "name": "State"
     }
   },
   {
@@ -108,7 +108,7 @@
     "model": "webapp.LeadField",
     "pk": 16,
     "fields": {
-      "name": "State"
+      "name": "LicenseEverSuspendedRevoked"
     }
   },
   {
@@ -231,6 +231,20 @@
     }
   },
   {
+    "model": "webapp.LeadField",
+    "pk": 34,
+    "fields": {
+      "name": "LicenseNumber"
+    }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 35,
+    "fields": {
+      "name": "LicenseIssuedAge"
+    }
+  },
+  {
     "model": "webapp.LeadFieldValue",
     "pk": 1,
     "fields": {
@@ -238,7 +252,9 @@
       "consumer" :1,
       "uri": "http://msadev1.msaff.com/xml-post/get_vehicle_info.php",
       "method" : "H",
-      "ajax":true
+      "ajax":true,
+      "partof": "Vehicle data",
+      "partseq": 3
     }
   },
   {
@@ -249,7 +265,8 @@
       "consumer" :1,
       "uri":"ResidenceStatusValues",
       "method" : "X",
-      "index": 37
+      "index": 37,
+      "partof": "Residence"
     }
   },
   {
@@ -260,7 +277,8 @@
       "consumer" :1,
       "uri":"YearsAtType",
       "method" : "X",
-      "index": 14
+      "index": 14,
+      "partof": "Residence"
     }
   },
   {
@@ -271,7 +289,8 @@
       "consumer" :1,
       "uri":"MonthsAtType",
       "method" : "X",
-      "index": 14
+      "index": 14,
+      "partof": "Residence"
     }
   },
   {
@@ -399,7 +418,7 @@
     "fields": {
       "field": 16,
       "consumer" :1,
-      "uri":"StateType",
+      "uri":"YesNo",
       "method" : "X"
     }
   },
@@ -440,7 +459,8 @@
       "field": 20,
       "consumer" :1,
       "uri":"YesNo",
-      "method" : "X"
+      "method" : "X",
+      "attribute":true
     }
   }, 
   {
@@ -451,7 +471,9 @@
       "consumer" :1,
       "uri": "http://msadev1.msaff.com/xml-post/get_vehicle_info.php",
       "method" : "H",
-      "ajax":true
+      "ajax":true,
+      "partof": "Vehicle data",
+      "partseq": 3
     }
   }, 
   {
@@ -462,7 +484,9 @@
       "consumer" :1,
       "uri": "http://msadev1.msaff.com/xml-post/get_vehicle_info.php",
       "method" : "H",
-      "ajax":true
+      "ajax":true,
+      "partof": "Vehicle data",
+      "partseq": 1
     }
   },
   {
@@ -471,9 +495,9 @@
     "fields": {
       "field": 23,
       "consumer" :1,
-      "uri": "http://msadev1.msaff.com/xml-post/get_vehicle_info.php",
-      "method" : "H",
-      "ajax":true
+      "method" : "V",
+      "partof": "Vehicle data",
+      "partseq": 0
     }
   },
   {
@@ -491,7 +515,8 @@
     "fields": {
       "field": 25,
       "consumer" :1,
-      "method" : "V"
+      "method" : "V",
+      "partof": "Full name"
     }
   },
   {
@@ -500,7 +525,8 @@
     "fields": {
       "field": 26,
       "consumer" :1,
-      "method" : "V"
+      "method" : "V",
+      "partof": "Full name"
     }
   },
   {
@@ -570,6 +596,26 @@
     }
   },
   {
+    "model": "webapp.LeadFieldValue", 
+    "pk": 34,
+    "fields": {
+      "field": 34,
+      "consumer" :1,
+      "method" : "V",
+      "required":false
+    }
+  },
+  {
+    "model": "webapp.LeadFieldValue", 
+    "pk": 35,
+    "fields": {
+      "field": 35,
+      "consumer" :1,
+      "method" : "V",
+      "required":false
+    }
+  },
+  {
     "model": "webapp.LeadSource",
     "pk": 1,
     "fields": {
@@ -619,7 +665,7 @@
     "pk": 1,
     "fields": {
       "name": "Lead",
-      "data_values": [2,3,4,24,25,26],
+      "data_values": [8,25,26,24,28,29,30,31,32,33,2,3,4],
       "consumer": 1
     }
   },
@@ -649,6 +695,26 @@
     "fields": {
       "name": "PersonalInfo",
       "data_values": [24,25,26],
+      "parent": 3,
+      "consumer": 1
+    }
+  },
+  {
+    "model": "webapp.LeadFieldGroup",
+    "pk": 5,
+    "fields": {
+      "name": "DrivingRecord",
+      "data_values": [22],
+      "parent": 3,
+      "consumer": 1
+    }
+  },
+  {
+    "model": "webapp.LeadFieldGroup",
+    "pk": 6,
+    "fields": {
+      "name": "DriversLicense",
+      "data_values": [8,16, 34,35],
       "parent": 3,
       "consumer": 1
     }

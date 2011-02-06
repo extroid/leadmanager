@@ -89,6 +89,12 @@ class LeadFieldValue(models.Model):
     attribute = models.BooleanField ( default=False )
     required = models.BooleanField ( default=True )
     ajax = models.BooleanField(default=False)
+    partof = models.CharField(max_length=256, null=True, blank=True)
+    partseq = models.SmallIntegerField(default=0)
+    
+    def __init__ (self, *args, **kwargs):
+        super(LeadFieldValue,self).__init__(*args,**kwargs)
+        self.options = None
     
     def get_url(self):
         return self.uri if self.refval is None else self.refval.uri
@@ -99,7 +105,8 @@ class LeadFieldValue(models.Model):
         
     def is_template(self):
         return self.refval is None
-    
+    def get_template(self):
+        return self.refval
     def create_instance(self):
         self_val = self if self.is_template() else self.refval
         fv = LeadFieldValue(field = self_val.field, 
@@ -110,7 +117,9 @@ class LeadFieldValue(models.Model):
                        consumer=self_val.consumer, 
                        ajax = self_val.ajax,
                        index = self_val.index,
-                       refval = self_val)  
+                       refval = self_val,
+                       partof = self_val.partof,
+                       partseq = self_val.partseq )  
         fv.save()
         return fv
     
@@ -119,7 +128,7 @@ class LeadFieldValue(models.Model):
     
     def is_dropdown(self):
         return self.method not in ('V','R')
-    
+  
     def get_data(self):
         if self.method=='R':
             if self.index <0:
@@ -174,8 +183,9 @@ class LeadFieldGroup(models.Model):
     def visit_instance_tree(self, value_visitor):
         if self.is_template(): return 
         for value in self.get_values():
-            value_visitor ( value )    
+            value_visitor ( self, value )    
         for child in self.children.all():
+            print '*** new group', child.name
             child.visit_instance_tree ( value_visitor )
             
     def get_subgroups(self):
@@ -190,13 +200,20 @@ class LeadFieldGroup(models.Model):
         return LeadFieldGroup.objects.filter(refval = self_group).all()
     def get_value_templates(self):
         self_group = self if self.is_template() else self.refval
-        return self_group.data_values.filter(refval__isnull=True).all()
+        return self_group.data_values.filter(refval__isnull=True).order_by('-partof','partseq').all()
     def get_values(self):
         if self.is_template(): return self.get_value_templates() 
-        return self.data_values.filter(refval__isnull=False, groups=self).all() 
-    def get_value_data(self, filed_name):  
-        qset = self.data_values.filter(refval__isnull=False, groups=self, field__name=filed_name)
+        return self.data_values.filter(refval__isnull=False, groups=self).order_by('-partof','partseq').all()
+    def set_value_data(self, field_name, data):
+        if self.is_template(): return None 
+        fv = self.data_values.get(refval__isnull=False, groups=self, field__name=field_name)
+        fv.value = data
+        fv.save() 
+    def get_value_data(self, field_name):  
+        qset = self.data_values.filter(refval__isnull=False, groups=self, field__name=field_name)
         return None if len(qset) ==0 else qset[0].value  
+    def get_field_value(self,field_name):
+        return self.get_value_data(field_name)
     def is_template(self):
         return self.refval is None
     def check_required_complete(self):
@@ -269,6 +286,7 @@ class LeadEntry(models.Model):
         
         moss_data = MOSS.get_metagroup().create_instance_tree()
         self.data_groups.add(moss_data)
+        return moss_data
     def delete_moss_data(self):
         moss_data = self.get_moss_data()
         if moss_data:
@@ -277,24 +295,23 @@ class LeadEntry(models.Model):
     def delete_lead(self):
         self.delete_moss_data()        
         self.delete ( )
-                
-    def get_moss_value_options(self):
-        self.value_fields = []    
+        
+    def option_collector(self, group, fieldValue):  
+        if fieldValue.is_input(): return         
+        
+        get_field_value ( fieldValue, group, fieldValue.set_options )
+        if fieldValue.options and len(fieldValue.options)==1:
+            fieldValue.value=fieldValue.options[0]
+            fieldValue.save()
+        elif fieldValue.options and fieldValue.get_data() in fieldValue.options:
+            fieldValue.value=fieldValue.get_data()
+            fieldValue.save()    
+#            fieldValue.set_options(handler.options)
+        print fieldValue.options                
+    def get_moss_value_options(self, option_collector):
         moss_data = self.create_or_get_moss_data()
-         
-        def option_collector(fieldValue):           
-            handler = ValueHandler()
-            get_field_value ( fieldValue, self, handler.set_options )
-            if len(handler.options)==1:
-                fieldValue.value=handler.options[0]
-                fieldValue.save()
-            elif fieldValue.get_data() in handler.options:
-                fieldValue.value=fieldValue.get_data()
-                fieldValue.save()    
-            self.value_fields.append({'value':fieldValue, 'options':handler.options})
         moss_data.visit_instance_tree ( option_collector )    
-            
-        return self.value_fields    
+        return moss_data    
     
     def get_moss_field_value(self, field_name, group='Lead'):
         print 'get field value', field_name
