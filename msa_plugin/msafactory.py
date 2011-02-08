@@ -353,10 +353,10 @@ def createContactDetails(lead):
 
     return msa.ContactDetails(firstName, lastName, streetAddress, city, state, ZIPCode, email, phoneNumbers, residenceStatus)
 def createInsurancePolicy(lead):
-    moss = lead.get_moss_data()
-    requestedCoverage = moss.get_field_value('RequestCoverage')
+    insuranceGroup = lead.get_moss_data().get_subgroup_instance('Insurance Policy')
+    requestedCoverage = insuranceGroup.get_field_value('RequestCoverage')
     newPolicy = msa.NewPolicy ( RequestedCoverage=requestedCoverage )
-    priorPolicy = msa.PriorPolicy(CurrentlyInsured="No")
+    priorPolicy = msa.PriorPolicy(CurrentlyInsured=insuranceGroup.get_field_value('Currently Insured'))
     insurancePolicy = msa.InsurancePolicy(NewPolicy=newPolicy, PriorPolicy=priorPolicy)
     
     return insurancePolicy
