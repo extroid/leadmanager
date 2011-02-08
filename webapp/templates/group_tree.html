@@ -9,6 +9,7 @@
         <a id ="{{rootgroup.id}}" class ="delete_group" {% if rootgroup.onlyone %}style="display: none;"{%endif%} href="/lead/delete_group/">
             Delete
         </a>
+        </br>
         <div class="field_groups" style="position: relative; padding-left: 1em">
 {% endif %}
 
@@ -40,12 +41,15 @@
            <div id="tabs-{{group.id}}">
       {% endif %}
 
-      <div class="group_parent">
+      <div class="group_parent" {% if group.get_level > 1 %} style="padding-left: {{group.get_ident}}em;" {%endif%}>
       {% include "group_instance.html" %}
-      {% if group.get_level > 1 and group.get_values|length > 0 %}
-            </div> <!-- field_group -->
-            </div> <!-- group_parent -->
-      {% endif %}  
+      
+      {% if group.get_level > 1 and group.get_values|length > 0 %} 
+	     </div> <!-- field_group -->
+	     </div> <!-- group_parent -->
+	  {% endif %}
+
+        
       {% if forloop.last %}
         </div> <!-- field_group -->
         </div> <!-- group_parent -->

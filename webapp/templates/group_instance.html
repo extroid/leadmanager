@@ -9,7 +9,8 @@
    <a id ="{{group.id}}" class ="delete_group" {% if group.onlyone %}style="display: none;"{%endif%} href="/lead/delete_group/">
        Delete
    </a>
-  {% endif %}      
+  {% endif %}  
+  </br>    
   <div class="field_groups" style="position: relative; padding-left: 1em">
      {% if group.get_values|length > 0 %}
      <table>
@@ -19,7 +20,7 @@
            <td width="80%">
                 {% if entry.is_input %}
                     <div>
-                    <input class="common_field" name="{{entry.id}}" type="text" size="12" value="{% if entry.value %}{{entry.value}}{% endif %}"/>
+                    <input class="common_field" style="float: left;" name="{{entry.id}}" type="text" size="12" value="{% if entry.value %}{{entry.value}}{% endif %}"/>
                     <div id="icon_{{entry.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
                     </div>
                 {% endif%} 

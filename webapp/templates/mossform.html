@@ -77,20 +77,26 @@
         
         function delete_new_group(){
             alert('Delete of '+ $(this).attr('id'));
+            return false;
         };
         function add_new_group(){
-            var $field_groups = $(this).parent().parent();
+            var $field_groups = $(this).parent();
             var fg_visible = $field_groups.is(":visible");
+            $.fancybox.showActivity();
             $.ajax({
                  type        : "POST",
                  cache   : false,
                  url     : $(this).attr('href'),
                  data    : {'refgrp':$(this).attr('id')},
                  success: function(data) {
-                    $field_groups.append (data );
+                	$.fancybox.hideActivity(); 
+                	$('.field_value_select').unbind('change');
+                	$('.common_field').unbind('change', save_input_field);
+                    $(".fold_group").unbind('click');
+                    $(".add_group").unbind('click');
+                    $(".delete_group").unbind('click');
                     
-                    $('.field_value_select').unbind('change');
-                    $(".fold_group .add_group .delete_group").unbind('click');
+                	$field_groups.append (data );
                     
                     $('.field_value_select').bind('change', save_field_value);
                     $(".fold_group").bind('click', fold_group);
@@ -155,9 +161,15 @@
 			    <span style="{% if entry.required %}font-weight: bold{%endif%}">{{entry.field.name}}</span></td>
 			    <td style="background-color: #eee;" width="80%">
 			     {% if entry.is_input %}
-			         <input name="{{entry.field.name}}" type="text" size="12" value="{% if entry.value %}{{entry.value}}{% endif %}"/>
+			         <div>
+			         <input name="{% if lead %}{{entry.id}}{% else %}{{entry.field.name}}{% endif %}" type="text" size="12" {%if lead%}class="common_field" style="display:block; float:left;"{% endif%} value="{% if entry.value %}{{entry.value}}{% endif %}"/>
+			         {% if lead %}
+			          <div id="icon_{{entry.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
+			          {% endif %}
+			          </div>
 			     {% endif%}
 			     {% if entry.is_dropdown %}
+			         <div>
 			         <select name="{%if lead%}{{entry.field.id}}{%else%}{{entry.field.name}}{%endif%}" {%if lead%}class="field_value_select" style="display:block; float:left;"{% endif%}>
 		             <option value="-1">Please select...</option>    
 		             {% for optval in entry.get_options %}
@@ -170,6 +182,7 @@
 		             {% if lead %}
 		             <div id="icon_{{entry.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
 		             {% endif %}
+		             </div>
 			     {% endif%}
 			    </td>
 		    </tr>

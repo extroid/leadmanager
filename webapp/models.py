@@ -3,6 +3,7 @@ from django.utils.translation import ugettext_lazy as _
 from django.db.models import Sum
 
 from postmgr import post_lead, parse_csv_file, get_field_value
+from msa_plugin.msafactory import validate_lead
 from datetime import timedelta
 from datetime import datetime 
 
@@ -137,8 +138,11 @@ class LeadFieldValue(models.Model):
     def get_options(self):
         if self.is_input(): return None
         handler = ValueHandler()
-        get_field_value ( self, self.groups.all()[0], handler.set_options )
-        return handler.options
+        def on_error_stop_waiting(msg):
+            return True
+        get_field_value ( self, self.groups.all()[0], handler.set_options, on_error_stop_waiting )
+        
+        return handler.options if handler.options else []
     def get_data(self):
         if self.method=='R':
             if self.index <0:
@@ -266,7 +270,10 @@ class LeadFieldGroup(models.Model):
         while root.parent: 
             root = root.parent
             level+=1
-        return level    
+        return level
+    def get_ident(self):
+        if self.get_level()==0: return 0
+        return self.get_level()-1    
     def print_template_tree(self, grp = None, ident=1):
         if grp is None:
             grp = self
@@ -372,7 +379,12 @@ class LeadEntry(models.Model):
         return LeadFieldValue.get(field__name=field_name, consumer=MOSS, groups=group).value    
     
     def is_moss_complete(self):
-        return self.get_moss_data().is_complete()
+        try:
+            validate_lead ( self )
+            return True
+        except:
+            return False
+#        return self.get_moss_data().is_complete()
 
     def is_complete(self):
         return self.is_moss_complete()

@@ -95,8 +95,6 @@ def new_lead(request, consumer_name):
         consumer = get_object_or_404(LeadConsumer, name='MOSS')
         
         titles = consumer.get_metagroup().get_value_templates()
-#        titles = set_value_options(titles, consumer.get_metagroup())    
-#        print titles
         if request.method=='GET':
             return render_to_response('mossform.html', 
                                   {'titles': titles, 'lead':lead, 'form':LeadEntryForm()},
@@ -120,45 +118,16 @@ def new_lead(request, consumer_name):
             lead.niche = leadForm.cleaned_data['niche'] 
                 
             try:    
-                lead.first_name = request.POST['FirstName']            
-                lead.last_name = request.POST['LastName']
-                lead.state = request.POST['State']
-                lead.city = request.POST['City']
-                lead.save()
-#                options = {}
-#                def set_value_options2(group, fieldValue):
-#                    options[fieldValue]=None
-#                    if fieldValue.is_input(): return         
-#                    handler = ValueHandler()
-#                    get_required_field_value ( fieldValue, group, handler.set_options )
-#                    options[fieldValue.field.name]=handler.options
+                if 'lead_id' not in request.POST:
+                    lead.first_name = request.POST['First Name']            
+                    lead.last_name = request.POST['Last Name']
+                    lead.state = request.POST['State']
+                    lead.city = request.POST['City']
+                    lead.save()
                     
-                moss_data = lead.create_or_get_moss_data()
-                for fieldValue in moss_data.get_values():
-                    moss_data.set_value_data(fieldValue.field.name,request.POST[fieldValue.field.name])
-#                moss_data = lead.get_moss_value_options(set_value_options2)
-#                titles = []
-                
-#                subgroups = []
-#                for entry in moss_data.get_values():
-#                    print entry, 'options:', entry.options
-#                    titles.append((entry, options[entry], True))
-#                    
-#                grp = []    
-#                veh_list = moss_data.get_subgroup_instances('Vehicle')
-#                for veh in veh_list:
-#                    grp.append([])
-#                    for entry in veh.get_values():
-#                        grp[-1].append((veh,entry, options[entry.field.name]))
-#                subgroups.append((veh,grp,False))        
-#                
-#                grp = []    
-#                drv = moss_data.get_instance_subgroup('Driver')
-#                for entry in drv.get_values():
-#                    grp.append((entry, options[entry], False))
-#                subgroups.append((drv,grp))
-                
-                if 'lead_id' not in request.POST: 
+                    moss_data = lead.create_or_get_moss_data()
+                    for fieldValue in moss_data.get_values():
+                        moss_data.set_value_data(fieldValue.field.name,request.POST[fieldValue.field.name]) 
                     return render_to_response('mossform.html', 
                                   {'titles': moss_data.get_values(), 'rootgroup':moss_data, 'lead':lead, 'form':leadForm},
                                   context_instance=RequestContext(request)
@@ -169,12 +138,17 @@ def new_lead(request, consumer_name):
                         return HttpResponseRedirect('/lead/moss/new_lead')
                     except XMLSyntaxError, msg:
                         return render_to_response('mossform.html', 
-                              {'titles': titles, 'lead':lead, 'error':msg,'form':leadForm},
+                              {'titles': lead.get_moss_data().get_values(), 
+                               'rootgroup':lead.get_moss_data(), 
+                               'lead':lead, 
+                               'error':msg,
+                               'form':leadForm
+                               },
                               context_instance=RequestContext(request)
                               )         
             except KeyError, e:
                 return render_to_response('mossform.html', 
-                              {'titles': titles, 'error':e,'form':leadForm},
+                              {'titles': moss_data.get_values(), 'error':e,'form':leadForm},
                               context_instance=RequestContext(request)
                               )    
                 
@@ -190,7 +164,7 @@ def new_group(request):
             return render_to_response('group_instance.html', {'group': newgrp, 'new_instance':True})
         else:
             print 'responding a rootgroup'
-            return render_to_response('group_tree.html', {'rootgroup': newgrp, 'add_to_tree':True})
+            return render_to_response('group_tree.html', {'rootgroup': newgrp, 'add_to_tree':True, 'new_instance':True})
 @csrf_protect
 def show_leadsperday(request, qdate):
     try:

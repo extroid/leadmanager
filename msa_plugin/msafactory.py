@@ -7,6 +7,7 @@ from xml.sax import parseString
 import tempfile
 
 from schema_enum import get_enums_from_xsd
+from msa_plugin.msa import Accident
 
 #'residenceStatusPeriod':14,
 
@@ -212,7 +213,10 @@ import msa
 def num(x):
     if not x: return 0
     return x
-
+def getInt(x):
+    if not x or len(x.strip(' '))==0:
+        return None
+    return int(x)
 def getGender(g):
     if g=='M': 
         return 'Male'
@@ -228,17 +232,19 @@ def get_reqval(label, row, lead):
         return None
     
 def createPersonalInfo(personID, moss_driver):
-    gender        = moss_driver.get_field_value('Gender')
-    maritalStatus = moss_driver.get_field_value('MaritalStatus')
-    firstName     = moss_driver.get_field_value('FirstName') 
-    lastName      = moss_driver.get_field_value('LastName')
-    birthDate     = getBirthday(moss_driver.get_field_value('BirthDate'))
-    occupation    = moss_driver.get_field_value('Occupation')
-    education_    = moss_driver.get_field_value('Education')
-    militaryExperience = moss_driver.get_field_value('MilitaryExperience')
-    creditRaiting = msa.CreditRatingType(moss_driver.get_field_value('CreditRating Bankruptcy'),
-                                         valueOf_=moss_driver.get_field_value('CreditRating'))
-    education     = msa.EducationType(moss_driver.get_field_value('GoodStudentDiscount'), education_)
+    pinfo         = moss_driver.get_subgroup_instances('PersonalInfo')[0]
+    gender        = pinfo.get_field_value('Gender')
+    maritalStatus = pinfo.get_field_value('MaritalStatus')
+    firstName     = pinfo.get_field_value('First Name') 
+    lastName      = pinfo.get_field_value('Last Name')
+    birthDate     = getBirthday(pinfo.get_field_value('BirthDate'))
+    occupation    = pinfo.get_field_value('Occupation')
+    education_    = pinfo.get_field_value('Education')
+    ssn           = pinfo.get_field_value('Social Security Number')
+    militaryExperience = pinfo.get_field_value('MilitaryExperience')
+    creditRaiting = msa.CreditRatingType(pinfo.get_field_value('CreditRating Bankruptcy'),
+                                         valueOf_=pinfo.get_field_value('CreditRating'))
+    education     = msa.EducationType(pinfo.get_field_value('GoodStudentDiscount'), education_)
     relationshipToApplicant = "Self"
     
     # socialSecurityNumber = militaryExperience = creditRating = None
@@ -253,41 +259,81 @@ def createPersonalInfo(personID, moss_driver):
                             Occupation=occupation, 
                             Education=education, 
                             MilitaryExperience=militaryExperience,
-                            CreditRating=creditRaiting)
+                            CreditRating=creditRaiting,
+                            SocialSecurityNumber=ssn)
 def createDriver(moss_driver):
-    moss_drv_lic = moss_driver.get_instance_subgroup('DriversLicense')
-    moss_drv_rec = moss_driver.get_instance_subgroup('DrivingRecord')
+    moss_drv_lic = moss_driver.get_subgroup_instances('DriversLicense')[0]
+    moss_drv_rec = moss_driver.get_subgroup_instances('DrivingRecord')[0]
     
     primaryVehicle=1
     driverID = 1
     personalInfo = createPersonalInfo(driverID, moss_driver)
     
     driversLicense = msa.DriversLicense(LicenseEverSuspendedRevoked=moss_drv_lic.get_field_value('LicenseEverSuspendedRevoked'), 
-                                        Number=moss_drv_lic.get_field_value('LicenseNumber') or None, 
+                                        Number=moss_drv_lic.get_field_value('LicenseNumber'), 
                                         LicensedAge=moss_drv_lic.get_field_value('LicenseIssuedAge'), 
                                         State=moss_drv_lic.get_field_value('State'))
     
-    drivingRecord = msa.DrivingRecord ( moss_drv_rec.get_field_value('Driver.SR22'), 
-                                        moss_drv_rec.get_field_value('DriverTraining' ) )
-
-    return msa.Driver(driverID, personalInfo, primaryVehicle, driversLicense, drivingRecord)
+    DUIs = msa.DUIs()
+    for duiInst in  moss_drv_rec.get_subgroup_instances("DUI"):
+        dui = msa.DUI(duiInst.get_field_value('Month'), 
+                      duiInst.get_field_value('Year'), 
+                      duiInst.get_field_value('State'))
+        DUIs.add_DUI(dui)
+        
+    accidents = msa.Accidents()
+    for accidentInst in  moss_drv_rec.get_subgroup_instances("Accident"):
+        accident = msa.Accident(accidentInst.get_field_value('Month'), 
+                            accidentInst.get_field_value('Year'), 
+                            accidentInst.get_field_value('Description'), 
+                            accidentInst.get_field_value('At Fault'), 
+                            accidentInst.get_field_value('What Damaged'), 
+                            getInt(accidentInst.get_field_value('Insurance Paid Amount')))
+        accidents.add_Accident(accident)
+    tickets = msa.Tickets()
+    for ticketInst in  moss_drv_rec.get_subgroup_instances("Ticket"):
+        ticket = msa.Ticket(ticketInst.get_field_value('Month'), 
+                            ticketInst.get_field_value('Year'), 
+                            ticketInst.get_field_value('Description')) 
+        tickets.add_Ticket(ticket)        
+    claims = msa.Claims()
+    for claimInst in  moss_drv_rec.get_subgroup_instances("Claim"):
+        claim = msa.Claim(claimInst.get_field_value('Month'), 
+                            claimInst.get_field_value('Year'), 
+                            claimInst.get_field_value('Description'), 
+                            claimInst.get_field_value('At Fault'), 
+                            claimInst.get_field_value('What Damaged'), 
+                            getInt(claimInst.get_field_value('Insurance Paid Amount')))
+        claims.add_Claim(claim)
+    drivingRecord = msa.DrivingRecord(SR22Required=moss_drv_rec.get_field_value('Driver.SR22'), 
+                                      DriverTraining=moss_drv_rec.get_field_value('DriverTraining' ), 
+                                      DUIs=DUIs, 
+                                      Accidents=accidents, 
+                                      Tickets=tickets, 
+                                      Claims=claims)    
+    return msa.Driver(driverID, 
+                      personalInfo, 
+                      primaryVehicle, 
+                      driversLicense, 
+                      drivingRecord)
 
 def createDrivers(lead):
     drivers = msa.Drivers()
-    for moss_driver  in lead.get_moss_data().get_subgroup_instance('Driver').get_instances():
+    for moss_driver  in lead.get_moss_data().get_subgroup_instances('Driver'):
         drivers.add_Driver ( createDriver ( moss_driver ) )
     return drivers
 def createVechicles(lead):
-    veh_moss = lead.get_moss_data().get_subgroup_instance('Vehicle')
+    veh_moss = lead.get_moss_data().get_subgroup_instances('Vehicle')
     vehicleID = 0
     vehicles = msa.Vehicles()
-    for vehicle in veh_moss.get_instances():
+    for vehicle in veh_moss:
         vehicleID += 1
-        
-        vehicleData = msa.VehicleData ( VehYear=vehicle.get_field_value('model-year'), 
-                                        VehMake=vehicle.get_field_value('make'), 
-                                        VehModel=vehicle.get_field_value('model'), 
-                                        VehSubmodel=vehicle.get_field_value('sub-model') )
+        vehicleData = None
+        if not vehicle.get_field_value('VIN'):
+            vehicleData = msa.VehicleData ( VehYear=vehicle.get_field_value('model-year'), 
+                                            VehMake=vehicle.get_field_value('make'), 
+                                            VehModel=vehicle.get_field_value('model'), 
+                                            VehSubmodel=vehicle.get_field_value('sub-model') )
         
         vehUse = msa.VehUseType( valueOf_=vehicle.get_field_value('VehUse'), 
                                 AnnualMiles=vehicle.get_field_value('VehUse.AnnualMiles'),  
@@ -323,22 +369,22 @@ def createHomeLead(lead):
 
 def createContactDetails(lead):
     moss = lead.get_moss_data()  
-    firstName     = moss.get_field_value('FirstName') 
-    lastName      = moss.get_field_value('LastName')
+    firstName     = moss.get_field_value('First Name') 
+    lastName      = moss.get_field_value('Last Name')
 #    streetAddress = getStreetAddress ( row )
     streetAddress = moss.get_field_value('StreetAddress')
     city          = moss.get_field_value('City')
     state         = moss.get_field_value('State')
-    ZIPCode       = moss.get_field_value('ZIPCode')
+    ZIPCode       = moss.get_field_value('ZIP Code')
     email         = moss.get_field_value('Email')  
     
     phoneNumbers  = msa.PhoneNumbers()
-    if moss.get_field_value('Work Phone'):
-        phoneNumbers.add_PhoneNumber( msa.PhoneNumberType ('Work', moss.get_field_value('Work Phone')) )
-    if moss.get_field_value('Home Phone'):
-        phoneNumbers.add_PhoneNumber( msa.PhoneNumberType ('Work', moss.get_field_value('Home Phone')) )    
-    if moss.get_field_value('Cell Phone'):
-        phoneNumbers.add_PhoneNumber( msa.PhoneNumberType ('Cell', moss.get_field_value('Cell Phone')) )                                                                 
+    if moss.get_field_value('Work Number'):
+        phoneNumbers.add_PhoneNumber( msa.PhoneNumberType ('Work', moss.get_field_value('Work Number')) )
+    if moss.get_field_value('Home Number'):
+        phoneNumbers.add_PhoneNumber( msa.PhoneNumberType ('Home', moss.get_field_value('Home Number')) )    
+    if moss.get_field_value('Cell Number'):
+        phoneNumbers.add_PhoneNumber( msa.PhoneNumberType ('Cell', moss.get_field_value('Cell Number')) )                                                                 
        
 #    residenceStatusPeriod = row[csvMap['residenceStatusPeriod']]
 
@@ -353,10 +399,30 @@ def createContactDetails(lead):
 
     return msa.ContactDetails(firstName, lastName, streetAddress, city, state, ZIPCode, email, phoneNumbers, residenceStatus)
 def createInsurancePolicy(lead):
-    insuranceGroup = lead.get_moss_data().get_subgroup_instance('Insurance Policy')
-    requestedCoverage = insuranceGroup.get_field_value('RequestCoverage')
+    insuranceGroup = lead.get_moss_data().get_subgroup_instances('Insurance Policy')[0]
+    priorPolicyGroup = insuranceGroup.get_subgroup_instances('Prior Policy')[0]
+    newPolicyGroup = insuranceGroup.get_subgroup_instances('New Policy')[0]
+    
+    requestedCoverage = newPolicyGroup.get_field_value('Requested Coverage')
+    
+    currentlyInsured=priorPolicyGroup.get_field_value('Currently Insured')
+    insuranceCompanyValue=priorPolicyGroup.get_field_value('Insurance Company')
+    yearsWith=getInt(priorPolicyGroup.get_field_value('Years With'))
+    monthsWith=getInt(priorPolicyGroup.get_field_value('Months With'))
+    policyExpirationDate=priorPolicyGroup.get_field_value('Policy Expiration Date')
+    yearsContinuous=getInt(priorPolicyGroup.get_field_value('Years Continuous'))
+    monthsContinuous=getInt(priorPolicyGroup.get_field_value('Months Continuous'))
+    insuranceCompany = msa.InsuranceCompanyType(MonthsWith=monthsWith, 
+                             YearsWith=yearsWith, 
+                             valueOf_=insuranceCompanyValue)
+    
     newPolicy = msa.NewPolicy ( RequestedCoverage=requestedCoverage )
-    priorPolicy = msa.PriorPolicy(CurrentlyInsured=insuranceGroup.get_field_value('Currently Insured'))
+    priorPolicy = msa.PriorPolicy(CurrentlyInsured=currentlyInsured, 
+                                  InsuranceCompany=insuranceCompany, 
+                                  PolicyExpirationDate=policyExpirationDate, 
+                                  YearsContinuous=yearsContinuous, 
+                                  MonthsContinuous=monthsContinuous)
+    
     insurancePolicy = msa.InsurancePolicy(NewPolicy=newPolicy, PriorPolicy=priorPolicy)
     
     return insurancePolicy
@@ -408,14 +474,14 @@ def post_lead(consumer, lead, callback=None):
     else:
         callback(lead, 0, 'F', handler.mapping['errordescription'],handler.mapping['errorcode'])
     
-def get_required_field_value(value, group, callback):
+def get_required_field_value(value, group, callback, error_callback=None):
     if value.field.name in ('model-year','make','model','sub-model'):
-        print group.get_field_value('model-year')
         queryCarData(value, 
                      group.get_field_value('model-year'), 
                      group.get_field_value('make'), 
                      group.get_field_value('model'), 
-                     callback)
+                     callback,
+                     error_callback)
     elif value.method == 'X':
         import os.path
         file = os.path.join(os.path.dirname(__file__),'MSA.xsd')
@@ -424,38 +490,50 @@ def get_required_field_value(value, group, callback):
         print 'Looking up %s' % value.get_url()
         callback(msa_xsd_enums[value.get_url()])
             
-def queryCarData(fieldValue, year, make, model, callback):
+def queryCarData(fieldValue, year, make, model, callback, error_callback):
     
     data = {'affiliate_id':fieldValue.consumer.affiliate_id,
-                            'password':fieldValue.consumer.password,
-                        }
-        
-    if year: data['year']=year
-    if make: data['make']=make
-    if model: data['model']=model
+            'password':fieldValue.consumer.password,
+           }
     
     can_do_request = True 
     key = fieldValue.field.name
     if fieldValue.field.name=='model-year':
         key = 'year'
-    if fieldValue.field.name=='make': 
+    if fieldValue.field.name=='make':
+        if year: data['year']=year 
         can_do_request = year is not None
-    if fieldValue.field.name=='model': 
+    if fieldValue.field.name=='model':
+        if year: data['year']=year
+        if make: data['make']=make 
         can_do_request = year and make    
-    if fieldValue.field.name=='sub-model': 
+    if fieldValue.field.name=='sub-model':
+        if year: data['year']=year
+        if make: data['make']=make
+        if model: data['model']=model 
         can_do_request = can_do_request and make and model
         
     if not can_do_request:
         print 'can not get [%s] having %s %s %s' % ( fieldValue.field.name, year, make, model)
         callback([])
         return
-    data=urllib.urlencode(data)
-    response_xml = urllib2.urlopen(fieldValue.get_url(), data).read()
     
-    handler = SubModelResponseHandler()
-    parseString ( response_xml, handler )
-    if callback:
-        callback(handler.mapping[key])
+    data=urllib.urlencode(data)
+    
+    for attempt in range(0,10):
+        try:
+            response_xml = urllib2.urlopen(fieldValue.get_url(), data).read()
+            
+            handler = SubModelResponseHandler()
+            parseString ( response_xml, handler )
+            if callback:
+                callback(handler.mapping[key])
+            break    
+        except urllib2.URLError, msg:
+            print 'Error %s, attempt %d of 10' % (msg,attempt) 
+            if error_callback:
+                if not error_callback(msg):
+                    break
 
 def getModels(consumer, year, make):
     createOpener(consumer.name,'http://msadev1.msaff.com/xml-post/get_vehicle_info.php',consumer.affiliate_id, consumer.password)
