@@ -236,7 +236,8 @@ def createPersonalInfo(personID, moss_driver):
     occupation    = moss_driver.get_field_value('Occupation')
     education_    = moss_driver.get_field_value('Education')
     militaryExperience = moss_driver.get_field_value('MilitaryExperience')
-    creditRaiting = msa.CreditRatingType(Bankruptcy="No", valueOf_="Excellent")
+    creditRaiting = msa.CreditRatingType(moss_driver.get_field_value('CreditRating Bankruptcy'),
+                                         valueOf_=moss_driver.get_field_value('CreditRating'))
     education     = msa.EducationType(moss_driver.get_field_value('GoodStudentDiscount'), education_)
     relationshipToApplicant = "Self"
     
@@ -267,21 +268,22 @@ def createDriver(moss_driver):
                                         State=moss_drv_lic.get_field_value('State'))
     
     drivingRecord = msa.DrivingRecord ( moss_drv_rec.get_field_value('Driver.SR22'), 
-                                        DriverTraining="Yes" )
+                                        moss_drv_rec.get_field_value('DriverTraining' ) )
 
     return msa.Driver(driverID, personalInfo, primaryVehicle, driversLicense, drivingRecord)
 
-def createDrivers(row, lead):
+def createDrivers(lead):
     drivers = msa.Drivers()
-    for moss_driver  in lead.get_moss_data().get_subgroup('Driver').get_instances():
+    for moss_driver  in lead.get_moss_data().get_subgroup_instance('Driver').get_instances():
         drivers.add_Driver ( createDriver ( moss_driver ) )
     return drivers
-def createVechicles(row, lead):
-    veh_moss = lead.get_moss_data().get_subgroup('Vehicle')
+def createVechicles(lead):
+    veh_moss = lead.get_moss_data().get_subgroup_instance('Vehicle')
     vehicleID = 0
     vehicles = msa.Vehicles()
     for vehicle in veh_moss.get_instances():
         vehicleID += 1
+        
         vehicleData = msa.VehicleData ( VehYear=vehicle.get_field_value('model-year'), 
                                         VehMake=vehicle.get_field_value('make'), 
                                         VehModel=vehicle.get_field_value('model'), 
@@ -296,7 +298,16 @@ def createVechicles(row, lead):
         comphrensiveDeductible = vehicle.get_field_value('ComphrensiveDeductible')
         collisionDeductible = vehicle.get_field_value('CollisionDeductible')
         garageType = vehicle.get_field_value('GarageType')
-        vehicle = msa.Vehicle(Ownership=ownership, VehicleID=vehicleID, VehicleData=vehicleData, VehUse=vehUse, ComphrensiveDeductible=comphrensiveDeductible, CollisionDeductible=collisionDeductible, GarageType=garageType)
+         
+        vehicle = msa.Vehicle(Ownership=ownership, 
+                              VehicleID=vehicleID, 
+                              VehicleData=vehicleData, 
+                              VehUse=vehUse,
+                              VIN=vehicle.get_field_value('VIN'), 
+                              ComphrensiveDeductible=comphrensiveDeductible, 
+                              CollisionDeductible=collisionDeductible, 
+                              GarageType=garageType)
+        
         vehicles.add_Vehicle(vehicle)
     
     return vehicles
@@ -341,10 +352,9 @@ def createContactDetails(lead):
                                                 )
 
     return msa.ContactDetails(firstName, lastName, streetAddress, city, state, ZIPCode, email, phoneNumbers, residenceStatus)
-def createInsurancePolicy(row, lead):
+def createInsurancePolicy(lead):
     moss = lead.get_moss_data()
     requestedCoverage = moss.get_field_value('RequestCoverage')
-
     newPolicy = msa.NewPolicy ( RequestedCoverage=requestedCoverage )
     priorPolicy = msa.PriorPolicy(CurrentlyInsured="No")
     insurancePolicy = msa.InsurancePolicy(NewPolicy=newPolicy, PriorPolicy=priorPolicy)
@@ -400,7 +410,7 @@ def post_lead(consumer, lead, callback=None):
     
 def get_required_field_value(value, group, callback):
     if value.field.name in ('model-year','make','model','sub-model'):
-        
+        print group.get_field_value('model-year')
         queryCarData(value, 
                      group.get_field_value('model-year'), 
                      group.get_field_value('make'), 
@@ -414,7 +424,7 @@ def get_required_field_value(value, group, callback):
         print 'Looking up %s' % value.get_url()
         callback(msa_xsd_enums[value.get_url()])
             
-def queryCarData(fieldValue, year=None, make=None, model=None, callback=None):
+def queryCarData(fieldValue, year, make, model, callback):
     
     data = {'affiliate_id':fieldValue.consumer.affiliate_id,
                             'password':fieldValue.consumer.password,
@@ -424,15 +434,20 @@ def queryCarData(fieldValue, year=None, make=None, model=None, callback=None):
     if make: data['make']=make
     if model: data['model']=model
     
-    can_do_request = year is not None 
-    
+    can_do_request = True 
+    key = fieldValue.field.name
+    if fieldValue.field.name=='model-year':
+        key = 'year'
+    if fieldValue.field.name=='make': 
+        can_do_request = year is not None
+    if fieldValue.field.name=='model': 
+        can_do_request = year and make    
     if fieldValue.field.name=='sub-model': 
         can_do_request = can_do_request and make and model
-    if fieldValue.field.name=='model': 
-        can_do_request = year and make 
+        
     if not can_do_request:
         print 'can not get [%s] having %s %s %s' % ( fieldValue.field.name, year, make, model)
-        callback(None)
+        callback([])
         return
     data=urllib.urlencode(data)
     response_xml = urllib2.urlopen(fieldValue.get_url(), data).read()
@@ -440,7 +455,7 @@ def queryCarData(fieldValue, year=None, make=None, model=None, callback=None):
     handler = SubModelResponseHandler()
     parseString ( response_xml, handler )
     if callback:
-        callback(handler.mapping[fieldValue.field.name])
+        callback(handler.mapping[key])
 
 def getModels(consumer, year, make):
     createOpener(consumer.name,'http://msadev1.msaff.com/xml-post/get_vehicle_info.php',consumer.affiliate_id, consumer.password)

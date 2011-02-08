@@ -1,4 +1,45 @@
-<div>
-    {% for value in group_instance %}
-    {% endfor %}
-</div>
+
+   <a class ="fold_group" href="#">
+       <span class="group_name">{{group.name}} {% if not group.onlyone %}{{group.get_instances|length}}{% endif%}</span>
+   </a>&nbsp;
+   <a id ="{{group.id}}" class ="add_group" {% if group.onlyone %}style="display: none;"{%endif%} href="/lead/new_group/">
+      Add
+  </a>&nbsp;
+  {% if new_instance %}
+   <a id ="{{group.id}}" class ="delete_group" {% if group.onlyone %}style="display: none;"{%endif%} href="/lead/delete_group/">
+       Delete
+   </a>
+  {% endif %}      
+  <div class="field_groups" style="position: relative; padding-left: 1em">
+     {% if group.get_values|length > 0 %}
+     <table>
+         {% for entry in group.get_values %}
+         <tr style="border: 1px dashed silver;">
+           <td width="20%"><span style="{% if entry.required %}font-weight: bold{%endif%}">{{entry.field.name}}</span></td>
+           <td width="80%">
+                {% if entry.is_input %}
+                    <div>
+                    <input class="common_field" name="{{entry.id}}" type="text" size="12" value="{% if entry.value %}{{entry.value}}{% endif %}"/>
+                    <div id="icon_{{entry.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
+                    </div>
+                {% endif%} 
+                {% if entry.is_dropdown %}
+                   <div>
+                   <select id="{{entry.id}}" name="{{entry.field.name}}" class="field_value_select" style="display:block; float:left;">
+                   <option value="-1">Please select...</option>    
+                   {% for optval in entry.get_options %}
+                       <option 
+                           {% if optval == entry.value %}selected="selected"{% endif %}  
+                           value="{{entry.id}}_{{optval}}">{{optval}}
+                       </option>
+                   {% endfor %}
+                   </select>
+                   <div id="icon_{{entry.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
+                   </div>
+               {% endif %}
+           </td>
+         </tr>
+         
+         {% endfor %}
+     </table>
+     {% endif %}

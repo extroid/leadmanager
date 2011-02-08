@@ -20,6 +20,8 @@ urlpatterns = patterns('',
     (r'^lead/(?P<consumer_name>moss|ia)/ufld/?', 'webapp.views.save_required_field_value'),
     (r'^lead/(?P<consumer_name>moss|ia)/new/?', 'webapp.views.new_lead'),
     (r'^lead/delete/?', 'webapp.views.delete_lead'),
+    (r'^fopt/?', 'webapp.views.get_options'),
+    (r'^lead/new_group/?', 'webapp.views.new_group'),
     # Uncomment the admin/doc line below to enable admin documentation:
     # (r'^admin/doc/', include('django.contrib.admindocs.urls')),
 

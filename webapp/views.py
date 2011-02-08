@@ -75,7 +75,19 @@ def set_value_options(values, group):
         get_required_field_value ( fieldValue, group, handler.set_options )
         q.append((fieldValue, handler.options))
     return q    
-        
+def get_options(request):
+    if request.POST:
+        fvid = int(request.POST['fieldvalue_id'])
+        print 'fvid', fvid
+        fieldValue = LeadFieldValue.objects.get(pk=fvid)
+        print fieldValue
+        options = {}
+        fopt = fieldValue.get_options()
+        print fopt
+        for opt in fopt:
+            options["%s_%s" % (fvid, opt)]=opt
+        data={'code':'OK','options':options}  
+        return HttpResponse(simplejson.dumps(data),mimetype='application/json')      
 @csrf_protect    
 def new_lead(request, consumer_name):
     lead = None
@@ -83,8 +95,8 @@ def new_lead(request, consumer_name):
         consumer = get_object_or_404(LeadConsumer, name='MOSS')
         
         titles = consumer.get_metagroup().get_value_templates()
-        titles = set_value_options(titles, consumer.get_metagroup())    
-        
+#        titles = set_value_options(titles, consumer.get_metagroup())    
+#        print titles
         if request.method=='GET':
             return render_to_response('mossform.html', 
                                   {'titles': titles, 'lead':lead, 'form':LeadEntryForm()},
@@ -113,39 +125,42 @@ def new_lead(request, consumer_name):
                 lead.state = request.POST['State']
                 lead.city = request.POST['City']
                 lead.save()
-                options = {}
-                def set_value_options2(group, fieldValue):
-                    options[fieldValue]=None
-                    if fieldValue.is_input(): return         
-                    handler = ValueHandler()
-                    get_required_field_value ( fieldValue, group, handler.set_options )
-                    options[fieldValue]=handler.options
+#                options = {}
+#                def set_value_options2(group, fieldValue):
+#                    options[fieldValue]=None
+#                    if fieldValue.is_input(): return         
+#                    handler = ValueHandler()
+#                    get_required_field_value ( fieldValue, group, handler.set_options )
+#                    options[fieldValue.field.name]=handler.options
                     
                 moss_data = lead.create_or_get_moss_data()
                 for fieldValue in moss_data.get_values():
                     moss_data.set_value_data(fieldValue.field.name,request.POST[fieldValue.field.name])
-                moss_data = lead.get_moss_value_options(set_value_options2)
-                titles = []
+#                moss_data = lead.get_moss_value_options(set_value_options2)
+#                titles = []
                 
-                subgroups = []
-                for entry in moss_data.get_values():
-                    titles.append((entry, options[entry]))
-                    
-                grp = []    
-                veh = moss_data.get_instance_subgroup('Vehicle')
-                for entry in veh.get_values():
-                    grp.append((entry, options[entry]))
-                subgroups.append((veh,grp))        
-                
-                grp = []    
-                drv = moss_data.get_instance_subgroup('Driver')
-                for entry in drv.get_values():
-                    grp.append((entry, options[entry]))
-                subgroups.append((drv,grp))
+#                subgroups = []
+#                for entry in moss_data.get_values():
+#                    print entry, 'options:', entry.options
+#                    titles.append((entry, options[entry], True))
+#                    
+#                grp = []    
+#                veh_list = moss_data.get_subgroup_instances('Vehicle')
+#                for veh in veh_list:
+#                    grp.append([])
+#                    for entry in veh.get_values():
+#                        grp[-1].append((veh,entry, options[entry.field.name]))
+#                subgroups.append((veh,grp,False))        
+#                
+#                grp = []    
+#                drv = moss_data.get_instance_subgroup('Driver')
+#                for entry in drv.get_values():
+#                    grp.append((entry, options[entry], False))
+#                subgroups.append((drv,grp))
                 
                 if 'lead_id' not in request.POST: 
                     return render_to_response('mossform.html', 
-                                  {'titles': titles, 'subgroups':subgroups,'lead':lead, 'form':leadForm},
+                                  {'titles': moss_data.get_values(), 'rootgroup':moss_data, 'lead':lead, 'form':leadForm},
                                   context_instance=RequestContext(request)
                                   )
                 else:
@@ -163,10 +178,19 @@ def new_lead(request, consumer_name):
                               context_instance=RequestContext(request)
                               )    
                 
-def new_group_instance(request, group_tpl_id):
-    group_template = get_object_or_404(LeadFieldGroup, pk=group_tpl_id);
-    group_instance = group_template.create_instance()
-    render_to_response('group_instance.html', {'instance': group_instance})
+def new_group(request):
+    if request.POST:
+        refgroup = int(request.POST['refgrp'])
+        group_template = get_object_or_404(LeadFieldGroup, pk=refgroup);
+        newgrp = group_template.create_instance_tree()
+        newgrp.parent = group_template.parent
+        newgrp.save()
+        if len(newgrp.get_subgroups())==0:
+            print 'responding a group'
+            return render_to_response('group_instance.html', {'group': newgrp, 'new_instance':True})
+        else:
+            print 'responding a rootgroup'
+            return render_to_response('group_tree.html', {'rootgroup': newgrp, 'add_to_tree':True})
 @csrf_protect
 def show_leadsperday(request, qdate):
     try:
@@ -206,8 +230,20 @@ def show_lead(request, leadno):
         return render_to_response('lead_table.html', {'lead':lead, 'values':values}, context_instance=RequestContext(request))
     except LeadFile.DoesNotExist:
         print 'LeadEntry pk=%s does not exists' % leadno
-
 def save_field_value(request):
+    if request.POST:
+        try:
+            field_id = int(request.POST['field_id'])
+            field_value = request.POST['value']
+            lfv = get_object_or_404(LeadFieldValue, pk=field_id)
+            lfv.value = field_value 
+            lfv.save()
+            data={'code':'OK', 'entry_id':lfv.groups.all()[0].get_lead().id, 'is_complete':lfv.groups.all()[0].is_complete()}
+            return HttpResponse(simplejson.dumps(data),mimetype='application/json')
+        except Exception, msg:
+            data={'code':'NOK','message':msg}
+            return HttpResponse(simplejson.dumps(data),mimetype='application/json')
+def save_csv_field_value(request):
     if request.POST:
         try:
             lead_id = int(request.POST['lead_id'])
@@ -218,6 +254,7 @@ def save_field_value(request):
             data[csvMap[field_name]] = field_value
             lead.set_data_record(data)
             lead.save()
+            
             data={'code':'OK', 'field_name':field_name,'lead_id':lead.id, 'is_complete':lead.is_complete()}
             return HttpResponse(simplejson.dumps(data),mimetype='application/json')
         except Exception, msg:
@@ -232,7 +269,26 @@ def save_required_field_value(request,consumer_name):
                 lfv = get_object_or_404(LeadFieldValue, id=fid)
                 lfv.value=request.POST['value']
                 lfv.save()
-                data={'code':'OK', 'entry_id':lfv.entries.all()[0].id, 'is_complete':lfv.entries.all()[0].is_complete()}
+                data={'code':'OK', 'entry_id':lfv.groups.all()[0].get_lead().id, 'is_complete':lfv.groups.all()[0].is_complete()}
+                parts = lfv.get_parts()
+                if parts and len(parts)>0:
+                    next = lfv.get_next_field()
+                    print 'next field', next
+                    if next:
+                        print 'Parts',parts
+                        parts = [p for p in parts[parts.index(next):]]
+                        for p in parts:
+                            p.value = None
+                            p.save()
+                        print 'Parts ID',parts
+                        parts = [p.id for p in parts] 
+                        options = {}
+                        fopt = next.get_options()
+                        for opt in fopt:
+                            options["%s_%s" % (next.id, opt)]=opt
+                        data['next']=next.id
+                        data['options']=options    
+                        data['clear_selection']=parts
                 return HttpResponse(simplejson.dumps(data),mimetype='application/json')
             except Exception,e:
                 data={'code':'NOK','message':e}

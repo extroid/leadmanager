@@ -22,11 +22,11 @@ def post_lead(lead, consumer, callback):
     except KeyError:
         callback(lead,0,'E')
             
-def get_field_value(fieldValue, lead, callback):    
-    LEAD_FIELDS[fieldValue.consumer.name] ( fieldValue, lead, callback )
+def get_field_value(fieldValue, group, callback):    
+    LEAD_FIELDS[fieldValue.consumer.name] ( fieldValue, group, callback )
     
 def parse_csv_file(filename, cb):        
-    getattr(LeadManager.settings, LEAD_PARSERS['csv'])(filename, cb)
+    getattr(settings, LEAD_PARSERS['csv'])(filename, cb)
     
 def main():
     

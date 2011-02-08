@@ -122,13 +122,23 @@ class LeadFieldValue(models.Model):
                        partseq = self_val.partseq )  
         fv.save()
         return fv
-    
     def is_input(self):
         return self.method in ('V','R') 
-    
+    def get_next_field(self):
+        qset = self.groups.all()[0].data_values.filter(partseq=self.partseq+1)
+        if qset.count()==0:
+            return None
+        return qset[0]
+    def get_parts(self):
+        if not self.partof: return None
+        return [p for p in self.groups.all()[0].data_values.filter(partof=self.partof).order_by('partseq').all()]
     def is_dropdown(self):
         return self.method not in ('V','R')
-  
+    def get_options(self):
+        if self.is_input(): return None
+        handler = ValueHandler()
+        get_field_value ( self, self.groups.all()[0], handler.set_options )
+        return handler.options
     def get_data(self):
         if self.method=='R':
             if self.index <0:
@@ -146,14 +156,18 @@ class LeadFieldGroup(models.Model):
     refval = models.ForeignKey('LeadFieldGroup', null=True, blank=True)
     consumer = models.ForeignKey(LeadConsumer, related_name='meta_group')
     parent = models.ForeignKey('LeadFieldGroup', related_name='children', null=True)
-    
+    onlyone = models.BooleanField(default=False) 
     class Meta:
         verbose_name=_(u'Lead field group')
         verbose_name_plural=_(u'Lead field groups')
         
     def create_instance(self):
+        "Creates another sibling of self type"
         self_group = self if self.is_template() else self.refval 
-        g = LeadFieldGroup(name = self_group.name, consumer=self_group.consumer, refval = self_group)
+        g = LeadFieldGroup(name = self_group.name, 
+                           consumer=self_group.consumer, 
+                           refval = self_group, 
+                           onlyone = self_group.onlyone)
         g.save()
         g.create_data()
         return g
@@ -162,8 +176,12 @@ class LeadFieldGroup(models.Model):
             self.data_values.add(fv.create_instance())
         self.save()
     def create_instance_tree(self):
-        return self.create_tree(self.create_instance())
-            
+        "Creates another sibling and all its children. Returns new instance"
+        self_new=self.create_instance()
+        self_new.parent = self.parent
+        self_new.save()
+        self.create_tree(self_new)
+        return self_new
     def create_tree(self, instance):
         for group_tpl in instance.get_subgroups():
             subinstance = group_tpl.create_instance()
@@ -182,6 +200,7 @@ class LeadFieldGroup(models.Model):
         
     def visit_instance_tree(self, value_visitor):
         if self.is_template(): return 
+        value_visitor ( self, None )
         for value in self.get_values():
             value_visitor ( self, value )    
         for child in self.children.all():
@@ -189,15 +208,20 @@ class LeadFieldGroup(models.Model):
             child.visit_instance_tree ( value_visitor )
             
     def get_subgroups(self):
+        "Gets group template objects"
         self_group = self if self.is_template() else self.refval
         return self_group.children.all()
     
-    def get_instance_subgroup(self, group_name):
-        return None if self.children is None or self.children.filter(name=group_name).count()==0 else self.children.get(name=group_name)
+    def get_subgroup_instances(self, group_name):
+        "Gets group instances of given group by its name"
+        if self.children is None or self.children.filter(name=group_name).count()==0:
+            return None  
+        else: 
+            return self.children.filter(name=group_name).all()
         
     def get_instances(self):
         self_group = self if self.is_template() else self.refval
-        return LeadFieldGroup.objects.filter(refval = self_group).all()
+        return LeadFieldGroup.objects.filter(parent=self.parent, refval = self_group).all()
     def get_value_templates(self):
         self_group = self if self.is_template() else self.refval
         return self_group.data_values.filter(refval__isnull=True).order_by('-partof','partseq').all()
@@ -220,13 +244,29 @@ class LeadFieldGroup(models.Model):
         for reqfld in self.data_values.filter(required=True):
             if reqfld.value is None:
                 return False  
-    def is_complete(self):
+    def is_complete(self, find_root=True):
         if self.is_template(): return True
-        if not self.check_required_complete(): return False    
-        for child in self.children.all():
-            if not child.is_complete():
+        root = self
+        if self.parent and find_root:
+            while root.parent:
+                root = root.parent
+        if not root.check_required_complete(): return False
+        for child in root.children.all():
+            if not child.is_complete(False):
                 return False
-        return True    
+        return True
+    def get_lead(self):
+        root = self
+        while root.parent: 
+            root = root.parent
+        return root.entries.all()[0]
+    def get_level(self):    
+        level = 0
+        root = self
+        while root.parent: 
+            root = root.parent
+            level+=1
+        return level    
     def print_template_tree(self, grp = None, ident=1):
         if grp is None:
             grp = self
@@ -235,7 +275,20 @@ class LeadFieldGroup(models.Model):
         for sub in grp.get_subgroups():
             print '%s (%s)' %(s+sub.name,len(grp.get_instances()))
             sub.print_template_tree(sub, ident+1)
-        print s        
+        print s       
+    def get_flat_structure(self):
+        flat_data = [] 
+        cache = set()
+        def flatter(group, fieldValue):
+            if group not in cache:
+                title = group.name
+                if group.get_level==1:
+                    title+='s'
+                flat_data.append((group, title))
+                cache.add(group)
+        for child in self.children.order_by('onlyone'):    
+            child.visit_instance_tree(flatter)
+        return flat_data    
     def __unicode__ (self):
         return u'%s' % (self.name)
         

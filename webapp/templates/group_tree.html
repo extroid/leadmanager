@@ -1,0 +1,61 @@
+{% if add_to_tree %}
+        <a class ="fold_group" href="#">
+             <span class="group_name">{{rootgroup.name}} {% if not rootgroup.onlyone %}{{rootgroup.get_instances|length}}{% endif%}</span>
+         </a>&nbsp;
+         <a id ="{{rootgroup.id}}" class ="add_group" {% if rootgroup.onlyone %}style="display: none;"{%endif%} href="/lead/new_group/">
+            Add
+        </a>
+        &nbsp;
+        <a id ="{{rootgroup.id}}" class ="delete_group" {% if rootgroup.onlyone %}style="display: none;"{%endif%} href="/lead/delete_group/">
+            Delete
+        </a>
+        <div class="field_groups" style="position: relative; padding-left: 1em">
+{% endif %}
+
+ <div id="tabs-container"> 
+        
+        <div id="tabs" style="overflow:auto;position:relative;">
+            <ul>
+            {% for group, title in rootgroup.get_flat_structure %}
+                {% if group.get_level == 1 %}
+                    <li><a href="#tabs-{{group.id}}"><span>{{title}}</span></a></li>
+                {% endif %}
+            {% endfor %}        
+            </ul>
+        
+            
+{% for group, title in rootgroup.get_flat_structure %}
+      
+      {% if group.get_level == 1 %}
+	       <!--    
+	       <p>
+	       <span style="background-color: silver;color: white;font-weight: bold;" >{{title}}</span>
+	       </p>
+	        -->
+	      {%if not forloop.first %}   
+	          </div> <!-- field_group -->
+	          </div> <!-- group_parent -->
+	          </div> <!-- tabs-# -->
+	      {% endif %}     
+           <div id="tabs-{{group.id}}">
+      {% endif %}
+
+      <div class="group_parent">
+      {% include "group_instance.html" %}
+      {% if group.get_level > 1 and group.get_values|length > 0 %}
+            </div> <!-- field_group -->
+            </div> <!-- group_parent -->
+      {% endif %}  
+      {% if forloop.last %}
+        </div> <!-- field_group -->
+        </div> <!-- group_parent -->
+        </div> <!-- tabs-# -->        
+      {% endif %}
+{% endfor %}
+
+</div> <!-- tabs -->
+</div> <!-- tab-container -->
+{% if add_to_tree %}
+    </div>
+    </div>
+{% endif %}    

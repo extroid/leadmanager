@@ -4,11 +4,11 @@
     $(function(){
     	function save_field_value(){
             var val = $(this).val();
-            if (val<0){ 
+            if (val=="-1"){ 
                 return false;
             }   
             var arr = val.split('_');
-            
+            $.fancybox.showActivity();
             $.ajax({
                 type        : "POST",
                 cache   : false,
@@ -16,6 +16,19 @@
                 data    : 'field='+arr[0]+'&value='+arr[1],
                 success: function(data) {
                    if(data.code=='OK'){
+                	   $.fancybox.hideActivity();
+                	   if (data.clear_selection!=null){
+	                	   for (var j=0; j<data.clear_selection.length; j++){
+	                           $('#'+data.clear_selection[j]).empty().append('<option selected value="-1">Please select...</option>') ;
+	                           $('#icon_'+data.clear_selection[j]).hide();
+	                       }
+                	   }
+                	   if(data.next){
+                		   var $select = $('#'+data.next);
+                		   $.each(data.options, function(val, text) {
+                               $select.append( new Option(text,val) );
+                           });
+                	   }
                        $('#icon_'+arr[0]).html('<img src="/static/icons/package-install.png"/>');
                        $('#icon_'+arr[0]).show();
                        if (data.is_complete){
@@ -28,38 +41,73 @@
             },'json'); 
             return false;
         };
-    	
-        $('.field_value_select').bind('change', save_field_value);
         
-        // $(".field_groups").hide();
-        $(".fold_group").bind('click', function(){
-        	var $field_groups = $(this).next().next().next();
-        	$field_groups.slideToggle('slow');
-        	/*
-        	if($field_groups.is(":visible")){
-        		$field_groups.hide();
-        		$(this).text('+');
-        	}else{
-        		$field_groups.show();
-        		$(this).text('-');
-        	}*/
-        	return false;
-        });
-        $(".add_group").bind('click', function(){
-            var $field_groups = $(this).next(".field_groups").get(0);
+        function save_input_field(){
+            var field_id = $(this).attr('name');
+            var value = $(this).attr('value');
+            
+            $.fancybox.showActivity();
+            $.ajax({
+                type    : "POST",
+                cache   : false,
+                data    : {'field_id':field_id, 'value':value},
+                url     : '/lead/ucfld',
+                success: function(data) {
+                   $.fancybox.hideActivity();
+                   if(data.code=='OK'){
+                       $('#icon_'+field_id).html('<img src="/static/icons/package-install.png"/>');
+                       $('#icon_'+field_id).show();
+                       if (data.is_complete){
+                    	   
+                       }
+                   }else{
+                       alert(data.code+':'+data.message);
+                   }
+                }   
+            },'json');
+   
+            return false;
+        }
+        
+        function fold_group (){
+            var $field_groups = $(this).next().next();
+            $field_groups.slideToggle('slow');
+            return false;
+        };
+        
+        function delete_new_group(){
+            alert('Delete of '+ $(this).attr('id'));
+        };
+        function add_new_group(){
+            var $field_groups = $(this).parent().parent();
             var fg_visible = $field_groups.is(":visible");
             $.ajax({
-            	 type        : "POST",
+                 type        : "POST",
                  cache   : false,
                  url     : $(this).attr('href'),
+                 data    : {'refgrp':$(this).attr('id')},
                  success: function(data) {
-                   	$field_groups.append(data);         
-                   	$('.field_value_select').bind('change', save_field_value);
-                   	if(!fg_visible) $field_groups.show(); 	
+                    $field_groups.append (data );
+                    
+                    $('.field_value_select').unbind('change');
+                    $(".fold_group .add_group .delete_group").unbind('click');
+                    
+                    $('.field_value_select').bind('change', save_field_value);
+                    $(".fold_group").bind('click', fold_group);
+                    $(".add_group").bind('click', add_new_group);
+                    $(".delete_group").bind('click', delete_new_group);
+                    $('.common_field').bind('change', save_input_field);
                  }   
             });
-        });
-    });
+            
+            return false;
+        };
+        $('.field_value_select').bind('change', save_field_value);
+        $('.common_field').bind('change', save_input_field);
+        $(".fold_group").bind('click', fold_group);
+        $(".add_group").bind('click', add_new_group);
+        $("#tabs").tabs();
+    });        
 </script>  
 {% endblock %}
 
@@ -92,7 +140,7 @@
 	 
 	<table>
 	     
-		{% for entry, options in titles %}
+		{% for entry in titles %}
 		    
 		    {% ifchanged entry.partof %}
 		          {% if entry.partof %}
@@ -112,7 +160,7 @@
 			     {% if entry.is_dropdown %}
 			         <select name="{%if lead%}{{entry.field.id}}{%else%}{{entry.field.name}}{%endif%}" {%if lead%}class="field_value_select" style="display:block; float:left;"{% endif%}>
 		             <option value="-1">Please select...</option>    
-		             {% for optval in options %}
+		             {% for optval in entry.get_options %}
 		                 <option 
 		                     {% if optval == entry.value %}selected="selected"{% endif %}  
 		                     value="{%if lead%}{{entry.id}}_{%endif%}{{optval}}">{{optval}}
@@ -139,41 +187,7 @@
 </form>
 <div style="float: left; display: block; width: 59%; margin-left: 10px;">
 {% if lead %}
-	{% for group, entries in subgroups %}
-	   <div>
-	   <a class ="fold_group" href="">-</a>
-        <span class="group_name" style="background-color: silver;color: white;font-weight: bold;" >{{group.name}}</span>&nbsp;
-        &nbsp;<a class ="add_group" href="/lead/new_group/{{group.id}}">Add</a>
-        <div class="field_groups">
-	   <table>
-	   {% for entry, options in entries %}
-	   <tr style="border: 1px dashed silver;">
-		 <td width="20%">{{entry.field.name}}</td>
-		 <td width="80%">
-		      {% if entry.is_input %}
-                  <input name="{{entry.field.name}}" type="text" size="12" value="{% if entry.value %}{{entry.value}}{% endif %}"/>
-              {% endif%} 
-              {% if entry.is_dropdown %}
-			 <div>
-			 <select name="{{entry.field.id}}" class="field_value_select" style="display:block; float:left;">
-			 <option value="-1">Please select...</option>    
-			 {% for optval in options %}
-			     <option 
-			         {% if optval == entry.value %}selected="selected"{% endif %}  
-			         value="{{entry.id}}_{{optval}}">{{optval}}
-			     </option>
-			 {% endfor %}
-			 </select>
-			 <div id="icon_{{entry.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
-			 </div>
-			 {% endif %}
-		 </td>
-	   </tr>
-	   {% endfor %}
-	   </table>
-	   </div>
-    </div>
-	{% endfor %}
+      {% include "group_tree.html" %}
 {% endif %}
 </div>
 {% endblock %}
