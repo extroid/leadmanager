@@ -17,6 +17,10 @@
 	             type        : "POST",
 	             cache   : false,
 	             url     : $(this).attr('href'),
+	             error   : function(data) {
+	            	 $.fancybox.hideActivity();
+	            	 alert(data);
+	             },
 	             success: function(data) {
 	             	$.fancybox.hideActivity();
 	             	if(data.code=='OK'){
@@ -39,6 +43,10 @@
 	    		 type        : "GET",
 	             cache   : false,
 	             url     : $(this).attr('href'),
+	             error   : function(data) {
+                     $.fancybox.hideActivity();
+                     alert(data);
+                 },
 	             success: function(data) {
 	            	    $('#detail_content').html(data);
 	            	    $.fancybox.hideActivity();
@@ -77,9 +85,9 @@
                {% endif %}
 	           <a class="show_detail" href="/lead/{{entry.id}}">
 		           {% if entry.is_complete %}
-		               <img id="status_icon_{{entry.id}}" style="border:0" src="/static/icons/gtk-info.png"/>
+		               <img id="status_icon_{{entry.id}}" style="border:0" src="{{MEDIA_URL}}icons/gtk-info.png"/>
 		           {% else %}
-	                   <img id="status_icon_{{entry.id}}" style="border:0" src="/static/icons/package-new.png"/>
+	                   <img id="status_icon_{{entry.id}}" style="border:0" src="{{MEDIA_URL}}icons/package-new.png"/>
 	               {% endif %}     
 	           </a></td>
 	           <td>{{entry.first_name}}&nbsp;{{entry.last_name}}</td>

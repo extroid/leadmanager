@@ -1,6 +1,8 @@
 {% extends "base.html" %}
 
-{% block pagescripts %} {% endblock %}
+{% block pagescripts %}
+<script type="text/javascript" src="{{MEDIA_URL}}js/edit_form.js"></script> 
+{% endblock %}
 
 {% block parentmenu%}Lead Manager&nbsp;/&nbsp;{% endblock %}{% block menu%}<a href="/files">File manager</a>{%endblock%}
 {% block pagetitle%}<h1>Lead Manager</h1>{% endblock %}

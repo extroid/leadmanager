@@ -192,17 +192,13 @@ def show_leadfile(request, leadfileno):
 def show_lead(request, leadno):
     try:
         lead = LeadEntry.objects.get(pk=leadno)
-        data = lead.get_data_as_list()
-        MOSS = LeadConsumer.objects.get(name='MOSS')
-        titles = [x for x in csvMap.keys()]
-        titles = MOSS.get_diff(titles)
-        titles.sort()
-        values = []
-        for attr in titles:
-            values.append(Value(attr,data[csvMap[attr]]))
-        
-        return render_to_response('lead_table.html', {'lead':lead, 'values':values}, context_instance=RequestContext(request))
-    except LeadFile.DoesNotExist:
+        return render_to_response('lead_table.html', 
+                                  {'lead':lead, 
+                                   'titles':lead.get_moss_data().get_values(), 
+                                   'rootgroup':lead.get_moss_data()
+                                   }, 
+                                   context_instance=RequestContext(request))
+    except LeadEntry.DoesNotExist:
         print 'LeadEntry pk=%s does not exists' % leadno
 def save_field_value(request):
     if request.POST:

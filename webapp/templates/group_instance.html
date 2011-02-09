@@ -1,6 +1,6 @@
 
    <a class ="fold_group" href="#">
-       <span class="group_name">{{group.name}} {% if not group.onlyone %}{{group.get_instances|length}}{% endif%}</span>
+       <span class="group_name">{{group.name}} {% if not group.onlyone %}{{group.get_index}}{% endif%}</span>
    </a>&nbsp;
    <a id ="{{group.id}}" class ="add_group" {% if group.onlyone %}style="display: none;"{%endif%} href="/lead/new_group/">
       Add

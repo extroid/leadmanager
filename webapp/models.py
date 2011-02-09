@@ -202,14 +202,18 @@ class LeadFieldGroup(models.Model):
             child.delete_instance_tree()
         self.delete()    
         
-    def visit_instance_tree(self, value_visitor):
+    def visit_instance_tree(self, value_visitor, node_visitor=None, node_order=None):
         if self.is_template(): return 
-        value_visitor ( self, None )
+        if node_visitor:
+                node_visitor(self)
         for value in self.get_values():
             value_visitor ( self, value )    
-        for child in self.children.all():
-            print '*** new group', child.name
-            child.visit_instance_tree ( value_visitor )
+        if not node_order:    
+            for child in self.children.all():
+                child.visit_instance_tree ( value_visitor, node_visitor )
+        else:
+            for child in self.children.order_by(*node_order):
+                child.visit_instance_tree ( value_visitor, node_visitor )        
             
     def get_subgroups(self):
         "Gets group template objects"
@@ -285,17 +289,24 @@ class LeadFieldGroup(models.Model):
         print s       
     def get_flat_structure(self):
         flat_data = [] 
-        cache = set()
-        def flatter(group, fieldValue):
-            if group not in cache:
-                title = group.name
-                if group.get_level==1:
-                    title+='s'
-                flat_data.append((group, title))
-                cache.add(group)
-        for child in self.children.order_by('onlyone'):    
-            child.visit_instance_tree(flatter)
+        val_flat = lambda x,y: x and y
+        def flatter(group):
+            print '*** ',group.name
+            title = group.name
+            if group.get_level()==1 and not group.onlyone:
+                title+=' %d' % group.get_index()
+            flat_data.append((group, title))
+        for child in self.children.order_by('name'):
+            if child.is_template(): continue 
+            print 'flatting tree ', child.name   
+            child.visit_instance_tree(val_flat,flatter)
         return flat_data    
+    def get_index(self):
+        if self.is_template(): return -1
+        if not self.parent: return 0
+        children = [grp for grp in self.parent.children.filter(name=self.name)]
+        return children.index(self)+1
+         
     def __unicode__ (self):
         return u'%s' % (self.name)
         
@@ -328,7 +339,7 @@ class LeadEntry(models.Model):
     def get_payout(self, consumer=None):
         if consumer:
             if not self.is_sold ( consumer ): return 0
-            return self.transactions.get(consumer=consumer).payout
+            return self.transactions.get(consumer=consumer, payout__gt=0).payout
         else:
             l = self.transactions.filter(result='S').aggregate(Sum('payout'))
             if 'payout__sum' in l and l['payout__sum']:

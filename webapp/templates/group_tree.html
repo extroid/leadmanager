@@ -11,23 +11,23 @@
         </a>
         </br>
         <div class="field_groups" style="position: relative; padding-left: 1em">
-{% endif %}
+{% else %}
 
  <div id="tabs-container"> 
         
-        <div id="tabs" style="overflow:auto;position:relative;">
+        <div id="datatabs" style="overflow:auto;position:relative;">
             <ul>
             {% for group, title in rootgroup.get_flat_structure %}
                 {% if group.get_level == 1 %}
-                    <li><a href="#tabs-{{group.id}}"><span>{{title}}</span></a></li>
+                    <li><a href="#datatabs-{{group.id}}"><span>{{title}}</span></a></li>
                 {% endif %}
             {% endfor %}        
             </ul>
         
-            
+{% endif %}            
 {% for group, title in rootgroup.get_flat_structure %}
       
-      {% if group.get_level == 1 %}
+      {% if group.get_level == 1 and not add_to_tree %}
 	       <!--    
 	       <p>
 	       <span style="background-color: silver;color: white;font-weight: bold;" >{{title}}</span>
@@ -38,7 +38,7 @@
 	          </div> <!-- group_parent -->
 	          </div> <!-- tabs-# -->
 	      {% endif %}     
-           <div id="tabs-{{group.id}}">
+           <div id="datatabs-{{group.id}}">
       {% endif %}
 
       <div class="group_parent" {% if group.get_level > 1 %} style="padding-left: {{group.get_ident}}em;" {%endif%}>
@@ -57,9 +57,10 @@
       {% endif %}
 {% endfor %}
 
-</div> <!-- tabs -->
-</div> <!-- tab-container -->
 {% if add_to_tree %}
     </div>
     </div>
-{% endif %}    
+{% else %}    
+</div> <!-- tabs -->
+</div> <!-- tab-container -->
+{% endif %}

@@ -245,7 +245,7 @@ def createPersonalInfo(personID, moss_driver):
     creditRaiting = msa.CreditRatingType(pinfo.get_field_value('CreditRating Bankruptcy'),
                                          valueOf_=pinfo.get_field_value('CreditRating'))
     education     = msa.EducationType(pinfo.get_field_value('GoodStudentDiscount'), education_)
-    relationshipToApplicant = "Self"
+    relationshipToApplicant = pinfo.get_field_value('Relationship To Applicant')
     
     # socialSecurityNumber = militaryExperience = creditRating = None
     

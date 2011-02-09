@@ -376,6 +376,13 @@
     "fields": {
       "name": "Social Security Number"
     }
+  },
+  {
+    "model": "webapp.LeadField",
+    "pk": 55,
+    "fields": {
+      "name": "Relationship To Applicant"
+    }
   }, 
   {
     "model": "webapp.LeadFieldValue",
@@ -958,6 +965,17 @@
     }
   },
   {
+    "model": "webapp.LeadFieldValue", 
+    "pk": 57,
+    "fields": {
+      "field": 55,
+      "consumer" :1,
+      "uri": "RelationshipToApplicantType",
+      "method" : "X",
+      "required" : true
+    }
+  },
+  {
     "model": "webapp.LeadSource",
     "pk": 1,
     "fields": {
@@ -1037,7 +1055,7 @@
     "pk": 4,
     "fields": {
       "name": "PersonalInfo",
-      "data_values": [6,7,10,17,18,19,24,25,26,38,39,40,54],
+      "data_values": [6,7,10,17,18,19,24,25,26,38,39,40,54,57],
       "parent": 3,
       "consumer": 1,
       "onlyone":true

@@ -1,120 +1,15 @@
 {% extends "base.html" %}
 {% block pagescripts %} 
+<script type="text/javascript" src="{{MEDIA_URL}}js/edit_form.js"></script>
 <script type="text/javascript">
-    $(function(){
-    	function save_field_value(){
-            var val = $(this).val();
-            if (val=="-1"){ 
-                return false;
-            }   
-            var arr = val.split('_');
-            $.fancybox.showActivity();
-            $.ajax({
-                type        : "POST",
-                cache   : false,
-                url     : '/lead/moss/ufld',
-                data    : 'field='+arr[0]+'&value='+arr[1],
-                success: function(data) {
-                   if(data.code=='OK'){
-                	   $.fancybox.hideActivity();
-                	   if (data.clear_selection!=null){
-	                	   for (var j=0; j<data.clear_selection.length; j++){
-	                           $('#'+data.clear_selection[j]).empty().append('<option selected value="-1">Please select...</option>') ;
-	                           $('#icon_'+data.clear_selection[j]).hide();
-	                       }
-                	   }
-                	   if(data.next){
-                		   var $select = $('#'+data.next);
-                		   $.each(data.options, function(val, text) {
-                               $select.append( new Option(text,val) );
-                           });
-                	   }
-                       $('#icon_'+arr[0]).html('<img src="/static/icons/package-install.png"/>');
-                       $('#icon_'+arr[0]).show();
-                       if (data.is_complete){
-                       }
-                   }else{
-                       $('#icon_'+arr[0]).css('width:100px').html('<strong>data.message</strong>');
-                       $('#icon_'+arr[0]).show();
-                   }
-                },
-            },'json'); 
-            return false;
-        };
-        
-        function save_input_field(){
-            var field_id = $(this).attr('name');
-            var value = $(this).attr('value');
-            
-            $.fancybox.showActivity();
-            $.ajax({
-                type    : "POST",
-                cache   : false,
-                data    : {'field_id':field_id, 'value':value},
-                url     : '/lead/ucfld',
-                success: function(data) {
-                   $.fancybox.hideActivity();
-                   if(data.code=='OK'){
-                       $('#icon_'+field_id).html('<img src="/static/icons/package-install.png"/>');
-                       $('#icon_'+field_id).show();
-                       if (data.is_complete){
-                    	   
-                       }
-                   }else{
-                       alert(data.code+':'+data.message);
-                   }
-                }   
-            },'json');
-   
-            return false;
-        }
-        
-        function fold_group (){
-            var $field_groups = $(this).next().next();
-            $field_groups.slideToggle('slow');
-            return false;
-        };
-        
-        function delete_new_group(){
-            alert('Delete of '+ $(this).attr('id'));
-            return false;
-        };
-        function add_new_group(){
-            var $field_groups = $(this).parent();
-            var fg_visible = $field_groups.is(":visible");
-            $.fancybox.showActivity();
-            $.ajax({
-                 type        : "POST",
-                 cache   : false,
-                 url     : $(this).attr('href'),
-                 data    : {'refgrp':$(this).attr('id')},
-                 success: function(data) {
-                	$.fancybox.hideActivity(); 
-                	$('.field_value_select').unbind('change');
-                	$('.common_field').unbind('change', save_input_field);
-                    $(".fold_group").unbind('click');
-                    $(".add_group").unbind('click');
-                    $(".delete_group").unbind('click');
-                    
-                	$field_groups.append (data );
-                    
-                    $('.field_value_select').bind('change', save_field_value);
-                    $(".fold_group").bind('click', fold_group);
-                    $(".add_group").bind('click', add_new_group);
-                    $(".delete_group").bind('click', delete_new_group);
-                    $('.common_field').bind('change', save_input_field);
-                 }   
-            });
-            
-            return false;
-        };
-        $('.field_value_select').bind('change', save_field_value);
-        $('.common_field').bind('change', save_input_field);
-        $(".fold_group").bind('click', fold_group);
-        $(".add_group").bind('click', add_new_group);
-        $("#tabs").tabs();
-    });        
-</script>  
+$(function(){
+	$('.field_value_select').bind('change', save_field_value);
+	$('.common_field').bind('change', save_input_field);
+	$(".fold_group").bind('click', fold_group);
+	$(".add_group").bind('click', add_new_group);
+	$("#datatabs").tabs();
+});	
+</script>
 {% endblock %}
 
 {% block parentmenu%}<a href="/">Lead Dashboard</a>&nbsp;/&nbsp;{% endblock %}{% block menu%}{%endblock%}
@@ -128,79 +23,32 @@
 {% endblock %}
 
 {% block content %}
-
-{% if error %}
-    <div align="center" style="background-color: #ca373b; color: white;">{{error}}</p></div>
-{% endif %}
-<form method="post" action="/lead/moss/new">
-{% csrf_token %}
-{% if lead %}
-<input type="hidden" name="lead_id" value="{{lead.id}}"/>
-{% endif %}
-<table>
-{{form}}
-</table>
-    
-<div style="float: left; display: block;width: 40%">
-	
-	 
-	<table>
-	     
-		{% for entry in titles %}
-		    
-		    {% ifchanged entry.partof %}
-		          {% if entry.partof %}
-		              <tr><td style="background-color: silver;color: white;font-weight: bold;" colspan="2">{{entry.partof}}</td></tr>
-		          {% else %}
-			         <tr><td style="background-color: silver;color: white;font-weight: bold;" colspan="2">Others</td></tr>
-			      {% endif%}
-		    {% endifchanged%}  
-		      
-		    <tr>
-			    <td style="background-color: #eee;" width="20%">
-			    <span style="{% if entry.required %}font-weight: bold{%endif%}">{{entry.field.name}}</span></td>
-			    <td style="background-color: #eee;" width="80%">
-			     {% if entry.is_input %}
-			         <div>
-			         <input name="{% if lead %}{{entry.id}}{% else %}{{entry.field.name}}{% endif %}" type="text" size="12" {%if lead%}class="common_field" style="display:block; float:left;"{% endif%} value="{% if entry.value %}{{entry.value}}{% endif %}"/>
-			         {% if lead %}
-			          <div id="icon_{{entry.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
-			          {% endif %}
-			          </div>
-			     {% endif%}
-			     {% if entry.is_dropdown %}
-			         <div>
-			         <select name="{%if lead%}{{entry.field.id}}{%else%}{{entry.field.name}}{%endif%}" {%if lead%}class="field_value_select" style="display:block; float:left;"{% endif%}>
-		             <option value="-1">Please select...</option>    
-		             {% for optval in entry.get_options %}
-		                 <option 
-		                     {% if optval == entry.value %}selected="selected"{% endif %}  
-		                     value="{%if lead%}{{entry.id}}_{%endif%}{{optval}}">{{optval}}
-		                 </option>
-		             {% endfor %}
-		             </select>
-		             {% if lead %}
-		             <div id="icon_{{entry.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
-		             {% endif %}
-		             </div>
-			     {% endif%}
-			    </td>
-		    </tr>
-		    
-		{% endfor %}
-	</table>
-	{% if lead %}
-	    <input type="submit" value="Validate and create new"/>
-	{% else %}
-	    <input type="submit" value="Submit"/>
+	{% if error %}
+	    <div align="center" style="background-color: #ca373b; color: white;">{{error}}</p></div>
 	{% endif %}
-	
+	<form method="post" action="/lead/moss/new">
+	{% csrf_token %}
+	{% if lead %}
+	<input type="hidden" name="lead_id" value="{{lead.id}}"/>
+	{% endif %}
+	<table>
+	{{form}}
+	</table>
+	    
+	<div style="float: left; display: block;width: 40%">
+		{% include "contact_details.html" %}
 		
-</div>
-</form>
-<div style="float: left; display: block; width: 59%; margin-left: 10px;">
-{% if lead %}
-      {% include "group_tree.html" %}
-{% endif %}
-</div>
-{% endblock %}
+		{% if lead %}
+		    <input type="submit" value="Validate and create new"/>
+		{% else %}
+		    <input type="submit" value="Submit"/>
+		{% endif %}
+			
+	</div>
+	</form>
+	<div style="float: left; display: block; width: 59%; margin-left: 10px;">
+	{% if lead %}
+	      {% include "group_tree.html" %}
+	{% endif %}
+	</div>
+{% endblock %} <!-- content -->

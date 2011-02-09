@@ -1,0 +1,45 @@
+<table>
+         
+    {% for entry in titles %}
+        
+        {% ifchanged entry.partof %}
+              {% if entry.partof %}
+                  <tr><td style="background-color: silver;color: white;font-weight: bold;" colspan="2">{{entry.partof}}</td></tr>
+              {% else %}
+                 <tr><td style="background-color: silver;color: white;font-weight: bold;" colspan="2">Others</td></tr>
+              {% endif%}
+        {% endifchanged%}  
+          
+        <tr>
+            <td style="background-color: #eee;" width="20%">
+            <span style="{% if entry.required %}font-weight: bold{%endif%}">{{entry.field.name}}</span></td>
+            <td style="background-color: #eee;" width="80%">
+             {% if entry.is_input %}
+                 <div>
+                 <input name="{% if lead %}{{entry.id}}{% else %}{{entry.field.name}}{% endif %}" type="text" size="12" {%if lead%}class="common_field" style="display:block; float:left;"{% endif%} value="{% if entry.value %}{{entry.value}}{% endif %}"/>
+                 {% if lead %}
+                  <div id="icon_{{entry.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
+                  {% endif %}
+                  </div>
+             {% endif%}
+             {% if entry.is_dropdown %}
+                 <div>
+                 <select name="{%if lead%}{{entry.field.id}}{%else%}{{entry.field.name}}{%endif%}" {%if lead%}class="field_value_select" style="display:block; float:left;"{% endif%}>
+                 <option value="-1">Please select...</option>    
+                 {% for optval in entry.get_options %}
+                     <option 
+                         {% if optval == entry.value %}selected="selected"{% endif %}  
+                         value="{%if lead%}{{entry.id}}_{%endif%}{{optval}}">{{optval}}
+                     </option>
+                 {% endfor %}
+                 </select>
+                 {% if lead %}
+                 <div id="icon_{{entry.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
+                 {% endif %}
+                 </div>
+             {% endif%}
+            </td>
+        </tr>
+        
+    {% endfor %}
+</table>
