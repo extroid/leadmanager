@@ -5,6 +5,11 @@ function save_field_value(){
         return false;
     }   
     var arr = val.split('_');
+    var lead_id = null;
+    if (arr.length==3){
+    	lead_id=arr[2];
+    }
+    
     $.fancybox.showActivity();
     $.ajax({
         type        : "POST",
@@ -26,6 +31,9 @@ function save_field_value(){
                        $select.append( new Option(text,val) );
                    });
         	   }
+        	   if (data.is_complete && lead_id!=null){
+        		   $('#status_icon_'+lead_id).attr('src','/static/icons/gtk-info.png');
+               }
                $('#icon_'+arr[0]).html('<img src="/static/icons/package-install.png"/>');
                $('#icon_'+arr[0]).show();
                if (data.is_complete){
@@ -42,7 +50,12 @@ function save_field_value(){
 function save_input_field(){
     var field_id = $(this).attr('name');
     var value = $(this).attr('value');
-    
+    var arr = field_id.split('_');
+    var lead_id = null;
+    field_id = arr[0];
+    if (arr.length==2){
+    	lead_id=arr[1];
+    }
     $.fancybox.showActivity();
     $.ajax({
         type    : "POST",
@@ -54,8 +67,8 @@ function save_input_field(){
            if(data.code=='OK'){
                $('#icon_'+field_id).html('<img src="/static/icons/package-install.png"/>');
                $('#icon_'+field_id).show();
-               if (data.is_complete){
-            	   
+               if (data.is_complete && lead_id!=null){
+        		   $('#status_icon_'+lead_id).attr('src','/static/icons/gtk-info.png');
                }
            }else{
                alert(data.code+':'+data.message);

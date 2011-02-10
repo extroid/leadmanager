@@ -20,7 +20,7 @@
            <td width="80%">
                 {% if entry.is_input %}
                     <div>
-                    <input class="common_field" style="float: left;" name="{{entry.id}}" type="text" size="12" value="{% if entry.value %}{{entry.value}}{% endif %}"/>
+                    <input class="common_field" style="float: left;" name="{{entry.id}}{% if lead %}_{{lead_id}}{%endif%}" type="text" size="12" value="{% if entry.value %}{{entry.value}}{% endif %}"/>
                     <div id="icon_{{entry.id}}" style="display:none; width:16px; height:16px; float:left; margin-left:6px; margin-top:2px;"></div>
                     </div>
                 {% endif%} 
@@ -31,7 +31,7 @@
                    {% for optval in entry.get_options %}
                        <option 
                            {% if optval == entry.value %}selected="selected"{% endif %}  
-                           value="{{entry.id}}_{{optval}}">{{optval}}
+                           value="{{entry.id}}_{{optval}}{% if lead %}_{{lead_id}}{%endif%}">{{optval}}
                        </option>
                    {% endfor %}
                    </select>
