@@ -236,6 +236,12 @@ class LeadFieldGroup(models.Model):
     def get_values(self):
         if self.is_template(): return self.get_value_templates() 
         return self.data_values.filter(refval__isnull=False, groups=self).order_by('-partof','partseq').all()
+    def is_null(self):
+        if self.is_template(): return True
+        
+        val_count = self.data_values.filter(refval__isnull=False, groups=self).count();
+        null_count = self.data_values.filter(refval__isnull=False, groups=self, value_isnull=True).count();
+        return val_count==null_count
     def set_value_data(self, field_name, data):
         if self.is_template(): return None 
         fv = self.data_values.get(refval__isnull=False, groups=self, field__name=field_name)

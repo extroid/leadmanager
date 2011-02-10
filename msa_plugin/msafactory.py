@@ -277,14 +277,16 @@ def createDriver(moss_driver):
     DUIs = accidents = claims = tickets = None
     
     for duiInst in  moss_drv_rec.get_subgroup_instances("DUI"):
-        if not DUIs:
-            DUIs = msa.DUIs()
+        if duiInst.is_null(): continue
         dui = msa.DUI(duiInst.get_field_value('Month'), 
                       duiInst.get_field_value('Year'), 
                       duiInst.get_field_value('State'))
+        if not DUIs:
+            DUIs = msa.DUIs()
         DUIs.add_DUI(dui)
     
     for accidentInst in  moss_drv_rec.get_subgroup_instances("Accident"):
+        if accidentInst.is_null(): continue
         if not accidents:
             accidents = msa.Accidents()
         accident = msa.Accident(accidentInst.get_field_value('Month'), 
@@ -296,6 +298,7 @@ def createDriver(moss_driver):
         accidents.add_Accident(accident)
     
     for ticketInst in  moss_drv_rec.get_subgroup_instances("Ticket"):
+        if ticketInst.is_null(): continue
         if not tickets:
             tickets = msa.Tickets()
         ticket = msa.Ticket(ticketInst.get_field_value('Month'), 
@@ -304,6 +307,7 @@ def createDriver(moss_driver):
         tickets.add_Ticket(ticket)        
     
     for claimInst in  moss_drv_rec.get_subgroup_instances("Claim"):
+        if claimInst.is_null(): continue
         if not claims:
             claims = msa.Claims()
         claim = msa.Claim(claimInst.get_field_value('Month'), 
