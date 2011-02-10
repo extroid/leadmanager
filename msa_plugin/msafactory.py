@@ -24,6 +24,7 @@ def getStreetAddress(row, sep=' '):
         return row[csvMap['PersonalInfo.StreetAddress1']]
     return sep.join((row[csvMap['PersonalInfo.StreetAddress1']], row[csvMap['PersonalInfo.StreetAddress2']]))
 def parseDate(dt):
+    if not dt: return dt
     if '-' in dt: return dt
     if '/' in dt:
         d = map(int,dt.split('/'))
