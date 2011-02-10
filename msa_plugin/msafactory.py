@@ -23,7 +23,7 @@ def getStreetAddress(row, sep=' '):
     if not row[csvMap['PersonalInfo.StreetAddress2']]:
         return row[csvMap['PersonalInfo.StreetAddress1']]
     return sep.join((row[csvMap['PersonalInfo.StreetAddress1']], row[csvMap['PersonalInfo.StreetAddress2']]))
-def getBirthday(dt):
+def parseDate(dt):
     if '-' in dt: return dt
     if '/' in dt:
         d = map(int,dt.split('/'))
@@ -237,7 +237,7 @@ def createPersonalInfo(personID, moss_driver):
     maritalStatus = pinfo.get_field_value('MaritalStatus')
     firstName     = pinfo.get_field_value('First Name') 
     lastName      = pinfo.get_field_value('Last Name')
-    birthDate     = getBirthday(pinfo.get_field_value('BirthDate'))
+    birthDate     = parseDate(pinfo.get_field_value('BirthDate'))
     occupation    = pinfo.get_field_value('Occupation')
     education_    = pinfo.get_field_value('Education')
     ssn           = pinfo.get_field_value('Social Security Number')
@@ -409,12 +409,14 @@ def createInsurancePolicy(lead):
     insuranceCompanyValue=priorPolicyGroup.get_field_value('Insurance Company')
     yearsWith=getInt(priorPolicyGroup.get_field_value('Years With'))
     monthsWith=getInt(priorPolicyGroup.get_field_value('Months With'))
-    policyExpirationDate=priorPolicyGroup.get_field_value('Policy Expiration Date')
+    policyExpirationDate=parseDate(priorPolicyGroup.get_field_value('Policy Expiration Date'))
     yearsContinuous=getInt(priorPolicyGroup.get_field_value('Years Continuous'))
     monthsContinuous=getInt(priorPolicyGroup.get_field_value('Months Continuous'))
-    insuranceCompany = msa.InsuranceCompanyType(MonthsWith=monthsWith, 
-                             YearsWith=yearsWith, 
-                             valueOf_=insuranceCompanyValue)
+    insuranceCompany = None
+    if insuranceCompanyValue:
+        insuranceCompany = msa.InsuranceCompanyType(MonthsWith=getInt(monthsWith), 
+                                 YearsWith=getInt(yearsWith), 
+                                 valueOf_=insuranceCompanyValue)
     
     newPolicy = msa.NewPolicy ( RequestedCoverage=requestedCoverage )
     priorPolicy = msa.PriorPolicy(CurrentlyInsured=currentlyInsured, 
