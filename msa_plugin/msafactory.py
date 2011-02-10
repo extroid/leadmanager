@@ -274,16 +274,19 @@ def createDriver(moss_driver):
                                         Number=moss_drv_lic.get_field_value('LicenseNumber'), 
                                         LicensedAge=moss_drv_lic.get_field_value('LicenseIssuedAge'), 
                                         State=moss_drv_lic.get_field_value('State'))
+    DUIs = accidents = claims = tickets = None
     
-    DUIs = msa.DUIs()
     for duiInst in  moss_drv_rec.get_subgroup_instances("DUI"):
+        if not DUIs:
+            DUIs = msa.DUIs()
         dui = msa.DUI(duiInst.get_field_value('Month'), 
                       duiInst.get_field_value('Year'), 
                       duiInst.get_field_value('State'))
         DUIs.add_DUI(dui)
-        
-    accidents = msa.Accidents()
+    
     for accidentInst in  moss_drv_rec.get_subgroup_instances("Accident"):
+        if not accidents:
+            accidents = msa.Accidents()
         accident = msa.Accident(accidentInst.get_field_value('Month'), 
                             accidentInst.get_field_value('Year'), 
                             accidentInst.get_field_value('Description'), 
@@ -291,14 +294,18 @@ def createDriver(moss_driver):
                             accidentInst.get_field_value('What Damaged'), 
                             getInt(accidentInst.get_field_value('Insurance Paid Amount')))
         accidents.add_Accident(accident)
-    tickets = msa.Tickets()
+    
     for ticketInst in  moss_drv_rec.get_subgroup_instances("Ticket"):
+        if not tickets:
+            tickets = msa.Tickets()
         ticket = msa.Ticket(ticketInst.get_field_value('Month'), 
                             ticketInst.get_field_value('Year'), 
                             ticketInst.get_field_value('Description')) 
         tickets.add_Ticket(ticket)        
-    claims = msa.Claims()
+    
     for claimInst in  moss_drv_rec.get_subgroup_instances("Claim"):
+        if not claims:
+            claims = msa.Claims()
         claim = msa.Claim(claimInst.get_field_value('Month'), 
                             claimInst.get_field_value('Year'), 
                             claimInst.get_field_value('Description'), 
